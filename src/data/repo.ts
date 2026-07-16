@@ -79,6 +79,27 @@ function itemToRow(it: Partial<Item>): Partial<ItemRow> {
   return row
 }
 
+// Partial mapper for realtime UPDATE events. Postgres omits unchanged TOASTed
+// (large) columns — e.g. photos — from logical-decoding payloads, so an update
+// event must be MERGED into the existing item, never swapped in wholesale.
+// Only keys actually present in the payload become part of the patch.
+export function rowPatchToItem(raw: Partial<ItemRow>): Partial<Item> {
+  const p: Partial<Item> = {}
+  if ('name' in raw) p.name = raw.name as string
+  if ('cover' in raw) p.cover = raw.cover as string
+  if ('photos' in raw) p.photos = Array.isArray(raw.photos) ? raw.photos : []
+  if ('disposition' in raw) p.disposition = raw.disposition as Item['disposition']
+  if ('price_huf' in raw) p.priceHUF = raw.price_huf ?? null
+  if ('status' in raw) p.status = raw.status as Item['status']
+  if ('published' in raw) p.published = !!raw.published
+  if ('awaiting' in raw) p.awaiting = !!raw.awaiting
+  if ('stamped' in raw) p.stamped = !!raw.stamped
+  if ('proposed_by' in raw) p.proposedBy = raw.proposed_by ?? null
+  if ('private_note' in raw) p.privateNote = raw.private_note ?? null
+  if ('description' in raw) p.description = raw.description ?? null
+  return p
+}
+
 function rowToTask(r: TaskRow): Task {
   return {
     id: r.id,

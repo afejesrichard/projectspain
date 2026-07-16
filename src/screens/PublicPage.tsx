@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { color, font } from '../theme'
 import { fetchPublicItems, type PublicItem } from '../data/repo'
 import { DispositionTag } from '../components/DispositionTag'
+import { Lightbox } from '../components/Lightbox'
 import { PhotoPlaceholder, Skeleton } from '../components/primitives'
 
 export function PublicPage() {
@@ -112,6 +113,7 @@ function Section({
 function PublicCard({ item }: { item: PublicItem }) {
   const photoUrl = item.photos.find((p) => p.startsWith('data:')) ?? null
   const reserved = item.status === 'reserved'
+  const [open, setOpen] = useState(false)
   return (
     <div
       style={{
@@ -123,7 +125,22 @@ function PublicCard({ item }: { item: PublicItem }) {
         flexDirection: 'column',
       }}
     >
-      <PhotoPlaceholder caption={item.cover} photoUrl={photoUrl}>
+      <button
+        type="button"
+        onClick={() => photoUrl && setOpen(true)}
+        aria-label={photoUrl ? 'Fotó megnyitása nagyban' : undefined}
+        disabled={!photoUrl}
+        style={{
+          display: 'block',
+          width: '100%',
+          padding: 0,
+          border: 'none',
+          background: 'transparent',
+          cursor: photoUrl ? 'zoom-in' : 'default',
+          textAlign: 'inherit',
+        }}
+      >
+        <PhotoPlaceholder caption={item.cover} photoUrl={photoUrl}>
         {reserved && (
           <span
             style={{
@@ -143,7 +160,9 @@ function PublicCard({ item }: { item: PublicItem }) {
             LEFOGLALVA
           </span>
         )}
-      </PhotoPlaceholder>
+        </PhotoPlaceholder>
+      </button>
+      {open && photoUrl && <Lightbox url={photoUrl} onClose={() => setOpen(false)} />}
       <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
         <div style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.3 }}>{item.name}</div>
         {item.description && <div style={{ fontSize: 13.5, color: color.mutedInk, lineHeight: 1.4 }}>{item.description}</div>}
