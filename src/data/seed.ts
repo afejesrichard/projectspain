@@ -229,5 +229,4 @@ export const seedTasks: Task[] = [
   { id: 177, title: 'Fotók a régi lakásról', phase: 'Általános', assignee: 'Dorka', due: null, priority: 'low', done: true },
 ]
 
-export const SHARED_PASSWORD = 'koltozes'
 export const DAYS_TO_MOVE = 41
