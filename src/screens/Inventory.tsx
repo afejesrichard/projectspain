@@ -9,7 +9,7 @@ import { IconPlus, IconSearch } from '../components/icons'
 
 const FILTERS: [string, string][] = [
   ['Mind', 'all'],
-  ['Marad', 'keep'],
+  ['Visszük', 'keep'],
   ['Eladó', 'sell'],
   ['Elajándékoz', 'give'],
   ['Kidob', 'throw'],

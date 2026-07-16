@@ -41,7 +41,7 @@ export const DISPOSITIONS: Record<
   Disposition,
   { word: string; color: string; fg: string; label: string; short: string }
 > = {
-  keep: { word: 'MARAD', color: color.keep, fg: color.paper, label: 'Marad', short: 'Marad' },
+  keep: { word: 'VISSZÜK', color: color.keep, fg: color.paper, label: 'Visszük', short: 'Visszük' },
   sell: { word: 'ELADÓ', color: color.sell, fg: color.paper, label: 'Eladó', short: 'Eladó' },
   give: { word: 'ELAJÁNDÉK', color: color.give, fg: color.ink, label: 'Elajándékoz', short: 'Elaján.' },
   throw: { word: 'KIDOB', color: color.throw, fg: color.paper, label: 'Kidob', short: 'Kidob' },
