@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/relocation-app-design-ovwu25
   workflow_dispatch:
 
 permissions:
