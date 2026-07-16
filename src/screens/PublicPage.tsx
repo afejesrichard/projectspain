@@ -9,7 +9,7 @@ export function PublicPage() {
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    document.title = 'Manifest — jó gazdát keresünk'
+    document.title = 'Project Spain — jó gazdát keresünk'
     let alive = true
     fetchPublicItems()
       .then((data) => alive && setItems(data))
@@ -28,7 +28,7 @@ export function PublicPage() {
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '40px 20px 64px' }}>
         <header style={{ marginBottom: 34 }}>
           <div style={{ fontFamily: font.mono, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: color.softInk }}>
-            Manifest
+            Project Spain
           </div>
           <h1 style={{ fontFamily: font.display, fontWeight: 700, fontSize: 'clamp(28px,5vw,42px)', lineHeight: 1.1, letterSpacing: '-0.02em', margin: '10px 0 0' }}>
             Költözünk, jó gazdát keresünk a holminknak

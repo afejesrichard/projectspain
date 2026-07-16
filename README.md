@@ -1,4 +1,4 @@
-# Manifest
+# Project Spain
 
 A private, mobile-first relocation app for two people (Richard & Dorka) turning
 the chaos of packing up a home into something they can **see, agree on, and act
@@ -66,7 +66,8 @@ leak there. This is enforced at the database, not just the UI:
   columns — no `private_note`, no `proposed_by`, no approval state — and only
   published Sell/Give items that aren't gone.
 
-See `supabase/migrations/` for the exact schema, RLS policies, and seed data.
+See `supabase/migrations/` for the exact schema and RLS policies. The database
+starts empty — everything is catalogued by the two of you, in the app.
 
 ## Deployment
 

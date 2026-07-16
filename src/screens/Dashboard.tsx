@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { color, font, DISPOSITIONS, DISPOSITION_ORDER, fmtHUF } from '../theme'
 import { useStore } from '../store'
-import { PHASES, DAYS_TO_MOVE } from '../data/seed'
+import { PHASES, DAYS_TO_MOVE } from '../data/constants'
 import { IconCopy, IconCheck } from '../components/icons'
 import { Skeleton } from '../components/primitives'
 import { useState } from 'react'

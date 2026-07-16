@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { color, font, hexA } from '../theme'
 import { useStore } from '../store'
-import { PHASES } from '../data/seed'
+import { PHASES } from '../data/constants'
 import { useIsDesktop } from '../hooks/useMedia'
 import { AssigneeChip, Chip } from '../components/primitives'
 import { IconCheckSquare, IconPlus } from '../components/icons'

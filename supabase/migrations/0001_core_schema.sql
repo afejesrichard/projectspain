@@ -1,4 +1,4 @@
--- Manifest relocation app — core schema.
+-- Project Spain relocation app — core schema.
 -- Base tables are RLS-protected; only the editor (authenticated) may touch them.
 -- The public catalogue is served through a view that exposes only safe columns,
 -- so private notes and proposal state never reach anonymous visitors.

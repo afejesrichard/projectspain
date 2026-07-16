@@ -171,7 +171,7 @@ export function AppShell() {
         >
           <div style={{ padding: '6px 8px 18px' }}>
             <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em' }}>
-              Manifest
+              Project Spain
             </div>
             <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: '0.04em', color: color.shellMuted, marginTop: 2 }}>
               richard &amp; dorka · a költözés
@@ -222,7 +222,7 @@ export function AppShell() {
               gap: 12,
             }}
           >
-            <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 18 }}>Manifest</div>
+            <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 18 }}>Project Spain</div>
             <div style={{ marginLeft: 'auto', width: 168 }}>
               <ActingAsSwitch small />
             </div>
