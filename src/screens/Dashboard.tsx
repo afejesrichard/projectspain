@@ -13,11 +13,13 @@ export function Dashboard() {
   const items = useStore((s) => s.items)
   const tasks = useStore((s) => s.tasks)
   const loading = useStore((s) => s.loading)
+  const actingAs = useStore((s) => s.actingAs)
 
   const total = tasks.length
   const done = tasks.filter((t) => t.done).length
   const pct = total ? Math.round((done / total) * 100) : 0
   const openTasks = total - done
+  const mineOpen = tasks.filter((t) => !t.done && (t.assignee === actingAs || t.assignee === 'Both')).length
 
   const phases = PHASES.map((name) => {
     const inPhase = tasks.filter((t) => t.phase === name)
@@ -146,7 +148,11 @@ export function Dashboard() {
       {/* Quick entries */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <QuickEntry onClick={() => navigate('/leltar')} label="Leltár megnyitása" note={`${items.length} tárgy`} />
-        <QuickEntry onClick={() => navigate('/feladatok')} label="Feladatok megnyitása" note={`${openTasks} nyitott`} />
+        <QuickEntry
+          onClick={() => navigate('/feladatok?nezet=enyem')}
+          label="Feladatok megnyitása"
+          note={`${openTasks} nyitott · ebből tiéd: ${mineOpen}`}
+        />
       </div>
     </div>
   )

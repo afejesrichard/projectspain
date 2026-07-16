@@ -3,10 +3,7 @@ import type { Item } from '../types'
 import { useStore } from '../store'
 import { DispositionTag } from './DispositionTag'
 import { PhotoPlaceholder } from './primitives'
-
-function other(p: 'Richard' | 'Dorka') {
-  return p === 'Richard' ? 'Dorka' : 'Richard'
-}
+import { personName, otherPerson } from '../lib/people'
 
 // Calm approval strip near the tag on the item detail screen.
 export function ApprovalStrip({ item }: { item: Item }) {
@@ -17,8 +14,8 @@ export function ApprovalStrip({ item }: { item: Item }) {
   if (!pending || !item.proposedBy) return null
 
   const canApprove = actingAs !== item.proposedBy
-  const proposalLine = `${item.proposedBy} javasolta. Csak akkor számít, ha ${other(item.proposedBy)} jóváhagyja.`
-  const waitingLine = `Várunk, hogy ${other(item.proposedBy)} jóváhagyja…`
+  const proposalLine = `${personName(item.proposedBy)} javasolta. Csak akkor számít, ha ${personName(otherPerson(item.proposedBy))} jóváhagyja.`
+  const waitingLine = `Várunk, hogy ${personName(otherPerson(item.proposedBy))} jóváhagyja…`
 
   return (
     <div
@@ -124,7 +121,7 @@ export function ApprovalRow({ item, onOpen }: { item: Item; onOpen: () => void }
       >
         <div style={{ fontSize: 14.5, fontWeight: 500 }}>{item.name}</div>
         <div style={{ fontFamily: font.mono, fontSize: 11.5, color: color.softInk, marginTop: 3 }}>
-          {item.proposedBy} javasolta
+          {item.proposedBy ? `${personName(item.proposedBy)} javasolta` : ''}
         </div>
       </button>
 
