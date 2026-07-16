@@ -4,6 +4,7 @@ import { useStore } from './store'
 import { color, font } from './theme'
 import { AppShell } from './components/AppShell'
 import { Login } from './screens/Login'
+import { Welcome } from './screens/Welcome'
 import { Dashboard } from './screens/Dashboard'
 import { Inventory } from './screens/Inventory'
 import { ItemDetail } from './screens/ItemDetail'
@@ -34,9 +35,12 @@ function Splash() {
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const ready = useStore((s) => s.ready)
   const authed = useStore((s) => s.authed)
+  const identityChosen = useStore((s) => s.identityChosen)
   const location = useLocation()
   if (!ready) return <Splash />
   if (!authed) return <Navigate to="/belepes" replace state={{ from: location.pathname }} />
+  // First login on this device: ask who is holding it before showing the app.
+  if (!identityChosen) return <Welcome />
   return <>{children}</>
 }
 

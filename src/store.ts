@@ -8,14 +8,16 @@ import type { ItemRow, TaskRow } from './data/repo'
 
 const ACTING_KEY = 'manifest-acting-as'
 
-function readActingAs(): Person {
+function readStoredActingAs(): Person | null {
   const v = typeof localStorage !== 'undefined' ? localStorage.getItem(ACTING_KEY) : null
-  return v === 'Dorka' ? 'Dorka' : 'Richard'
+  return v === 'Dorka' || v === 'Richard' ? v : null
 }
 
 interface ManifestState {
   authed: boolean
   actingAs: Person
+  // Whether this device has explicitly chosen who it is (welcome screen).
+  identityChosen: boolean
   ready: boolean // initial session check finished
   loading: boolean // editor data loading
 
@@ -54,7 +56,8 @@ let realtimeBound = false
 
 export const useStore = create<ManifestState>((set, get) => ({
   authed: false,
-  actingAs: readActingAs(),
+  actingAs: readStoredActingAs() ?? 'Richard',
+  identityChosen: readStoredActingAs() != null,
   ready: false,
   loading: false,
 
@@ -152,7 +155,7 @@ export const useStore = create<ManifestState>((set, get) => ({
     } catch {
       /* ignore */
     }
-    set({ actingAs: p })
+    set({ actingAs: p, identityChosen: true })
   },
 
   clearFlash: () => set({ flashId: null }),
