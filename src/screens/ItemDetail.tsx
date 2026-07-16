@@ -24,6 +24,8 @@ export function ItemDetail() {
   const setStatus = useStore((s) => s.setStatus)
   const togglePublished = useStore((s) => s.togglePublished)
   const updateItem = useStore((s) => s.updateItem)
+  const removeItem = useStore((s) => s.removeItem)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const item = items.find((i) => i.id === Number(id))
   const [activePhoto, setActivePhoto] = useState(0)
@@ -272,6 +274,65 @@ export function ItemDetail() {
             </div>
           </div>
         )}
+
+        {/* delete — quiet entry, deliberate two-step confirm */}
+        <div style={{ borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18, marginTop: 4 }}>
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                padding: '10px 16px',
+                borderRadius: 8,
+                border: `1px solid ${hexA(color.throw, 0.5)}`,
+                background: 'transparent',
+                color: color.throw,
+                fontSize: 13.5,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Tárgy törlése
+            </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13.5, color: color.mutedInk }}>
+                Ez végleges — a fotókkal együtt eltűnik.
+              </span>
+              <button
+                onClick={async () => {
+                  await removeItem(item.id)
+                  navigate('/leltar', { replace: true })
+                }}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: color.throw,
+                  color: color.paper,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Törlöm
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: `1px solid ${color.line}`,
+                  background: color.cardWhite,
+                  color: color.mutedInk,
+                  fontSize: 13.5,
+                  cursor: 'pointer',
+                }}
+              >
+                Mégse
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

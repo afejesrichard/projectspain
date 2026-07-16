@@ -176,6 +176,11 @@ export async function patchItem(id: number, patch: Partial<Item>): Promise<void>
   if (error) throw error
 }
 
+export async function deleteItem(id: number): Promise<void> {
+  const { error } = await supabase.from('items').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function insertTask(draft: Omit<Task, 'id'>): Promise<Task> {
   const { data, error } = await supabase
     .from('tasks')

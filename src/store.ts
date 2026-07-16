@@ -41,6 +41,7 @@ interface ManifestState {
   togglePublished: (id: number) => Promise<void>
   approve: (id: number) => Promise<void>
   sendBack: (id: number) => Promise<void>
+  removeItem: (id: number) => Promise<void>
 
   // tasks
   addTask: (title: string, phase: Phase, assignee: Assignee) => Promise<void>
@@ -220,6 +221,16 @@ export const useStore = create<ManifestState>((set, get) => ({
       stamped: false,
       proposedBy: it.proposedBy === 'Richard' ? 'Dorka' : 'Richard',
     })
+  },
+
+  removeItem: async (id) => {
+    // optimistic removal; realtime DELETE keeps the other editor in sync
+    set((s) => ({ items: s.items.filter((it) => it.id !== id) }))
+    try {
+      await repo.deleteItem(id)
+    } catch {
+      get().loadData()
+    }
   },
 
   addTask: async (title, phase, assignee) => {
