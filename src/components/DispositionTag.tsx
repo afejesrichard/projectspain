@@ -35,9 +35,9 @@ export function DispositionTag({
   const s = SCALE[size]
   const pending = !readOnly && awaiting && !stamped
 
+  // Only sell items carry a price token; the give tag word already says it's free.
   let price: string | null = null
   if (disposition === 'sell') price = fmtHUF(priceHUF)
-  else if (disposition === 'give' && !priceHUF) price = 'INGYEN'
 
   const bg = pending ? hexA(d.color, 0.08) : d.color
   const fg = pending ? d.color : d.fg

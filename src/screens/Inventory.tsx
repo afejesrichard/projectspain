@@ -11,7 +11,7 @@ const FILTERS: [string, string][] = [
   ['Mind', 'all'],
   ['Visszük', 'keep'],
   ['Eladó', 'sell'],
-  ['Elajándékoz', 'give'],
+  ['Ingyen elvihető', 'give'],
   ['Kidob', 'throw'],
   ['Jóváhagyásra vár', 'awaiting'],
   ['Publikus', 'published'],
