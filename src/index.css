@@ -1,0 +1,144 @@
+/* Manifest — global base. Fonts loaded in index.html.
+   Palette: Ink #16202E, Paper #F6F4EF, Manifest line #C9CBBE.
+   The four disposition colours are the only accents. */
+
+:root {
+  --ink: #16202e;
+  --paper: #f6f4ef;
+  --line: #c9cbbe;
+  --keep: #2f6f8f;
+  --sell: #3f8a5b;
+  --give: #c98a2b;
+  --throw: #9a5b4e;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--keep);
+  text-decoration: none;
+}
+a:hover {
+  color: #24566e;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Focus visibility floor — accessible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--keep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(47, 111, 143, 0.2);
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* --- Motion: the only two moments worth animating --- */
+@keyframes tickPop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rowFlash {
+  0% {
+    background: rgba(47, 111, 143, 0.12);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.mf-flash {
+  animation: rowFlash 1.4s ease-out;
+}
+
+.mf-skeleton {
+  background: #eae8e1;
+  animation: skeletonPulse 1.3s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Hide scrollbars on the horizontal filter bar but keep it scrollable. */
+.mf-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mf-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
