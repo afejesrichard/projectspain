@@ -7,6 +7,7 @@ import { ApprovalStrip } from '../components/Approval'
 import { Toggle } from '../components/AddItemSheet'
 import { PhotoPlaceholder, Chip } from '../components/primitives'
 import { Lightbox } from '../components/Lightbox'
+import { NoteThread } from '../components/NoteThread'
 import { IconArrowLeft } from '../components/icons'
 import type { ItemStatus } from '../types'
 
@@ -32,13 +33,11 @@ export function ItemDetail() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [name, setName] = useState(item?.name ?? '')
   const [price, setPrice] = useState(item?.priceHUF != null ? String(item.priceHUF) : '')
-  const [note, setNote] = useState(item?.privateNote ?? '')
 
   useEffect(() => {
     if (item) {
       setName(item.name)
       setPrice(item.priceHUF != null ? String(item.priceHUF) : '')
-      setNote(item.privateNote ?? '')
       setActivePhoto(0)
     }
   }, [item?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -66,10 +65,6 @@ export function ItemDetail() {
     const n = parseInt(price.replace(/\D/g, ''), 10)
     const val = Number.isFinite(n) ? n : null
     if (val !== item.priceHUF) updateItem(item.id, { priceHUF: val })
-  }
-  const commitNote = () => {
-    const v = note.trim() || null
-    if (v !== item.privateNote) updateItem(item.id, { privateNote: v })
   }
 
   return (
@@ -248,30 +243,8 @@ export function ItemDetail() {
           </div>
         )}
 
-        {/* private note — on every item, never leaves this screen */}
-        <div style={{ border: `1px dashed ${color.line}`, borderRadius: 10, padding: '14px 16px', background: hexA(color.line, 0.14) }}>
-          <FieldLabel>{isGive ? 'Kié lesz · privát jegyzet' : 'Privát jegyzet'}</FieldLabel>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            onBlur={commitNote}
-            rows={2}
-            placeholder={isGive ? 'Pl. A szomszéd Nagy családnak ígérve.' : 'Csak nektek — pl. a vevő szombaton jön érte.'}
-            style={{
-                width: '100%',
-                border: `1px solid ${color.line}`,
-                borderRadius: 8,
-                padding: '9px 11px',
-                background: color.cardWhite,
-                fontSize: 14,
-                resize: 'vertical',
-                outline: 'none',
-              }}
-            />
-          <div style={{ fontSize: 11.5, color: color.faintInk, marginTop: 5 }}>
-            Soha nem jelenik meg a publikus oldalon.
-          </div>
-        </div>
+        {/* private note thread — append-only, who wrote what, never public */}
+        <NoteThread itemId={item.id} giveHint={isGive} />
 
         {/* delete — quiet entry, deliberate two-step confirm */}
         <div style={{ borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18, marginTop: 4 }}>
