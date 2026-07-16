@@ -8,5 +8,3 @@ export const PHASES: Phase[] = [
   'Csomagolás',
   'Általános',
 ]
-
-export const DAYS_TO_MOVE = 41
