@@ -1,10 +1,10 @@
 import { create } from 'zustand'
-import type { Item, Task, Person, ItemStatus, Assignee, Phase } from './types'
+import type { Item, Task, ItemNote, Person, ItemStatus, Assignee, Phase } from './types'
 import type { Disposition } from './theme'
 import { supabase } from './lib/supabase'
 import * as repo from './data/repo'
-import { rowToItem, rowToTask, rowPatchToItem } from './data/repo'
-import type { ItemRow, TaskRow } from './data/repo'
+import { rowToItem, rowToTask, rowToNote, rowPatchToItem } from './data/repo'
+import type { ItemRow, TaskRow, NoteRow } from './data/repo'
 
 const ACTING_KEY = 'manifest-acting-as'
 
@@ -23,6 +23,7 @@ interface ManifestState {
 
   items: Item[]
   tasks: Task[]
+  notes: ItemNote[]
   flashId: number | null
 
   // lifecycle
@@ -50,6 +51,9 @@ interface ManifestState {
   toggleTask: (id: number) => Promise<void>
   updateTask: (id: number, patch: Partial<Task>) => Promise<void>
   removeTask: (id: number) => Promise<void>
+
+  // notes
+  addNote: (itemId: number, body: string) => Promise<void>
 }
 
 let realtimeBound = false
@@ -63,6 +67,7 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   items: [],
   tasks: [],
+  notes: [],
   flashId: null,
 
   init: () => {
@@ -78,7 +83,7 @@ export const useStore = create<ManifestState>((set, get) => ({
       const wasAuthed = get().authed
       set({ authed })
       if (authed && !wasAuthed) get().loadData()
-      if (!authed) set({ items: [], tasks: [] })
+      if (!authed) set({ items: [], tasks: [], notes: [] })
     })
 
     if (!realtimeBound) {
@@ -121,6 +126,19 @@ export const useStore = create<ManifestState>((set, get) => ({
             }
           })
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'item_notes' }, (payload) => {
+          set((s) => {
+            if (payload.eventType === 'DELETE') {
+              const oldId = (payload.old as { id?: number }).id
+              return { notes: s.notes.filter((n) => n.id !== oldId) }
+            }
+            const row = rowToNote(payload.new as unknown as NoteRow)
+            const exists = s.notes.some((n) => n.id === row.id)
+            return {
+              notes: exists ? s.notes.map((n) => (n.id === row.id ? row : n)) : [...s.notes, row],
+            }
+          })
+        })
         .subscribe()
     }
   },
@@ -128,8 +146,12 @@ export const useStore = create<ManifestState>((set, get) => ({
   loadData: async () => {
     set({ loading: true })
     try {
-      const [items, tasks] = await Promise.all([repo.fetchItems(), repo.fetchTasks()])
-      set({ items, tasks, loading: false })
+      const [items, tasks, notes] = await Promise.all([
+        repo.fetchItems(),
+        repo.fetchTasks(),
+        repo.fetchNotes(),
+      ])
+      set({ items, tasks, notes, loading: false })
     } catch {
       set({ loading: false })
     }
@@ -146,7 +168,7 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   logout: async () => {
     await repo.signOut()
-    set({ authed: false, items: [], tasks: [] })
+    set({ authed: false, items: [], tasks: [], notes: [] })
   },
 
   setActingAs: (p) => {
@@ -276,6 +298,17 @@ export const useStore = create<ManifestState>((set, get) => ({
       await repo.deleteTask(id)
     } catch {
       get().loadData()
+    }
+  },
+
+  addNote: async (itemId, body) => {
+    const text = body.trim()
+    if (!text) return
+    try {
+      const created = await repo.insertNote(itemId, get().actingAs, text)
+      set((s) => ({ notes: [...s.notes.filter((n) => n.id !== created.id), created] }))
+    } catch {
+      /* ignore */
     }
   },
 }))

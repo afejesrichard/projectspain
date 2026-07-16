@@ -20,6 +20,14 @@ export interface Item {
   description: string | null // one-line public description
 }
 
+export interface ItemNote {
+  id: number
+  itemId: number
+  author: Person | null // null = pre-existing note migrated from the old field
+  body: string
+  createdAt: string // ISO
+}
+
 export type Phase =
   | 'Ügyintézés'
   | 'Lakhatás'

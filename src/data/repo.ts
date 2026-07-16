@@ -1,5 +1,5 @@
 import { supabase, EDITOR_EMAIL } from '../lib/supabase'
-import type { Item, Task, Person, Phase, Assignee, Priority, ItemStatus } from '../types'
+import type { Item, Task, ItemNote, Person, Phase, Assignee, Priority, ItemStatus } from '../types'
 import type { Disposition } from '../theme'
 
 // --- Row shapes (snake_case, as stored) ------------------------------------
@@ -180,6 +180,41 @@ export async function deleteItem(id: number): Promise<void> {
   const { error } = await supabase.from('items').delete().eq('id', id)
   if (error) throw error
 }
+
+// --- Item notes (private thread) -------------------------------------------
+interface NoteRow {
+  id: number
+  item_id: number
+  author: Person | null
+  body: string
+  created_at: string
+}
+
+export function rowToNote(r: NoteRow): ItemNote {
+  return { id: r.id, itemId: r.item_id, author: r.author, body: r.body, createdAt: r.created_at }
+}
+
+export async function fetchNotes(): Promise<ItemNote[]> {
+  const { data, error } = await supabase
+    .from('item_notes')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+  if (error) throw error
+  return (data as NoteRow[]).map(rowToNote)
+}
+
+export async function insertNote(itemId: number, author: Person, body: string): Promise<ItemNote> {
+  const { data, error } = await supabase
+    .from('item_notes')
+    .insert({ item_id: itemId, author, body })
+    .select('*')
+    .single()
+  if (error) throw error
+  return rowToNote(data as NoteRow)
+}
+
+export type { NoteRow }
 
 export async function insertTask(draft: Omit<Task, 'id'>): Promise<Task> {
   const { data, error } = await supabase
