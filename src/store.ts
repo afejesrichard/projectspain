@@ -3,7 +3,7 @@ import type { Item, Task, Person, ItemStatus, Assignee, Phase } from './types'
 import type { Disposition } from './theme'
 import { supabase } from './lib/supabase'
 import * as repo from './data/repo'
-import { rowToItem, rowToTask } from './data/repo'
+import { rowToItem, rowToTask, rowPatchToItem } from './data/repo'
 import type { ItemRow, TaskRow } from './data/repo'
 
 const ACTING_KEY = 'manifest-acting-as'
@@ -87,11 +87,19 @@ export const useStore = create<ManifestState>((set, get) => ({
               const oldId = (payload.old as { id?: number }).id
               return { items: s.items.filter((i) => i.id !== oldId) }
             }
-            const row = rowToItem(payload.new as unknown as ItemRow)
-            const exists = s.items.some((i) => i.id === row.id)
+            const raw = payload.new as unknown as Partial<ItemRow>
+            if (raw.id == null) return {}
+            const exists = s.items.some((i) => i.id === raw.id)
+            if (!exists) {
+              return { items: [rowToItem(raw as ItemRow), ...s.items], flashId: raw.id }
+            }
+            // MERGE, don't replace: unchanged large columns (photos!) are
+            // omitted from realtime UPDATE payloads, so a wholesale swap
+            // would silently blank them out in the UI.
+            const patch = rowPatchToItem(raw)
             return {
-              items: exists ? s.items.map((i) => (i.id === row.id ? row : i)) : [row, ...s.items],
-              flashId: row.id,
+              items: s.items.map((i) => (i.id === raw.id ? { ...i, ...patch } : i)),
+              flashId: raw.id,
             }
           })
         })

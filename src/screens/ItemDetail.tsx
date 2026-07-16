@@ -6,6 +6,7 @@ import { DispositionTag } from '../components/DispositionTag'
 import { ApprovalStrip } from '../components/Approval'
 import { Toggle } from '../components/AddItemSheet'
 import { PhotoPlaceholder, Chip } from '../components/primitives'
+import { Lightbox } from '../components/Lightbox'
 import { IconArrowLeft } from '../components/icons'
 import type { ItemStatus } from '../types'
 
@@ -26,6 +27,7 @@ export function ItemDetail() {
 
   const item = items.find((i) => i.id === Number(id))
   const [activePhoto, setActivePhoto] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const [name, setName] = useState(item?.name ?? '')
   const [price, setPrice] = useState(item?.priceHUF != null ? String(item.priceHUF) : '')
   const [note, setNote] = useState(item?.privateNote ?? '')
@@ -72,15 +74,34 @@ export function ItemDetail() {
     <div style={{ maxWidth: 760, margin: '0 auto' }}>
       <BackButton onClick={() => navigate(-1)} />
 
-      {/* photo(s) */}
-      <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 10 }}>
+      {/* photo(s) — tap opens the uncropped, full-screen view */}
+      <button
+        type="button"
+        onClick={() => realPhotos[activePhoto] && setLightboxOpen(true)}
+        aria-label="Fotó megnyitása nagyban"
+        disabled={!realPhotos[activePhoto]}
+        style={{
+          display: 'block',
+          width: '100%',
+          padding: 0,
+          border: 'none',
+          background: 'transparent',
+          borderRadius: 14,
+          overflow: 'hidden',
+          marginBottom: 10,
+          cursor: realPhotos[activePhoto] ? 'zoom-in' : 'default',
+        }}
+      >
         <PhotoPlaceholder
           aspect="16/10"
           caption={item.cover}
           fontSize={13}
           photoUrl={realPhotos[activePhoto] ?? null}
         />
-      </div>
+      </button>
+      {lightboxOpen && realPhotos[activePhoto] && (
+        <Lightbox url={realPhotos[activePhoto]} onClose={() => setLightboxOpen(false)} />
+      )}
       {(realPhotos.length > 0 ? realPhotos : item.photos).length > 1 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
           {(realPhotos.length > 0 ? realPhotos : item.photos).map((p, i) => (
