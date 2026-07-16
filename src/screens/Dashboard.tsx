@@ -6,7 +6,7 @@ import { IconCopy, IconCheck } from '../components/icons'
 import { Skeleton } from '../components/primitives'
 import { useState } from 'react'
 
-const PUBLIC_PATH = '/nyilvanos'
+import { publicShareUrl } from '../lib/shareUrl'
 
 export function Dashboard() {
   const navigate = useNavigate()
@@ -52,7 +52,7 @@ export function Dashboard() {
             {done} / {total} feladat kész · {DAYS_TO_MOVE} nap a költözésig
           </div>
         </div>
-        <DashboardCopyButton path={PUBLIC_PATH} />
+        <DashboardCopyButton />
       </div>
 
       {/* Tasks by phase */}
@@ -193,11 +193,11 @@ function QuickEntry({ onClick, label, note }: { onClick: () => void; label: stri
   )
 }
 
-function DashboardCopyButton({ path }: { path: string }) {
+function DashboardCopyButton() {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.origin + path)
+      await navigator.clipboard.writeText(publicShareUrl())
     } catch {
       /* ignore */
     }
