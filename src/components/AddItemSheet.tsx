@@ -3,6 +3,7 @@ import { color, font, hexA, DISPOSITION_ORDER, DISPOSITIONS, type Disposition } 
 import { useStore } from '../store'
 import { useIsDesktop } from '../hooks/useMedia'
 import { PhotoUploader } from './PhotoUploader'
+import { personName, otherPerson } from '../lib/people'
 import type { ItemStatus } from '../types'
 
 const REMOVAL: Disposition[] = ['sell', 'give', 'throw']
@@ -11,7 +12,7 @@ export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => 
   const isDesktop = useIsDesktop()
   const addItem = useStore((s) => s.addItem)
   const actingAs = useStore((s) => s.actingAs)
-  const other = actingAs === 'Richard' ? 'Dorka' : 'Richard'
+  const other = personName(otherPerson(actingAs))
 
   const [name, setName] = useState('')
   const [disposition, setDisposition] = useState<Disposition>('keep')

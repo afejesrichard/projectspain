@@ -1,28 +1,78 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { color, font, hexA } from '../theme'
 import { useStore } from '../store'
 import { PHASES } from '../data/constants'
 import { useIsDesktop } from '../hooks/useMedia'
 import { AssigneeChip, Chip } from '../components/primitives'
+import { personName, otherPerson } from '../lib/people'
 import { IconCheckSquare, IconPlus } from '../components/icons'
-import type { Task, Phase, Assignee } from '../types'
+import type { Task, Phase, Assignee, Person } from '../types'
+
+type WhoFilter = 'all' | 'mine' | 'other'
+const FILTER_KEY = 'manifest-todo-filter'
+
+// Task rows cycle assignee in a fixed absolute order.
+const NEXT_ASSIGNEE: Record<Assignee, Assignee> = {
+  Richard: 'Dorka',
+  Dorka: 'Both',
+  Both: 'Richard',
+}
+
+// Quick-add cycles relative to the current editor: Én → [másik] → Közös.
+function nextAddAssignee(cur: Assignee, actingAs: Person): Assignee {
+  const order: Assignee[] = [actingAs, otherPerson(actingAs), 'Both']
+  const i = order.indexOf(cur)
+  return order[(i + 1) % order.length]
+}
+
+function readFilter(): WhoFilter {
+  const v = typeof localStorage !== 'undefined' ? localStorage.getItem(FILTER_KEY) : null
+  return v === 'mine' || v === 'other' ? v : 'all'
+}
 
 export function Todos() {
   const isDesktop = useIsDesktop()
+  const [params, setParams] = useSearchParams()
   const tasks = useStore((s) => s.tasks)
   const actingAs = useStore((s) => s.actingAs)
-  const other = actingAs === 'Richard' ? 'Dorka' : 'Richard'
+  const other = otherPerson(actingAs)
 
-  const [who, setWho] = useState<'all' | 'mine' | 'other'>('all')
+  // Filter persists per device; a ?nezet=enyem deep-link (from the dashboard)
+  // wins on arrival.
+  const [who, setWho] = useState<WhoFilter>(() =>
+    params.get('nezet') === 'enyem' ? 'mine' : readFilter(),
+  )
   const [hideDone, setHideDone] = useState(false)
+  // The quick-add target sticks across adds in a session; starts as "me".
+  const [addAssignee, setAddAssignee] = useState<Assignee>(actingAs)
 
+  // Clear the deep-link param once consumed, and persist the choice.
+  useEffect(() => {
+    if (params.get('nezet')) {
+      const next = new URLSearchParams(params)
+      next.delete('nezet')
+      setParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_KEY, who)
+    } catch {
+      /* ignore */
+    }
+  }, [who])
+
+  const isMine = (t: Task) => t.assignee === actingAs || t.assignee === 'Both'
   const matchesWho = (t: Task) => {
     if (who === 'all') return true
-    const target = who === 'mine' ? actingAs : other
-    return t.assignee === target || t.assignee === 'Both'
+    if (who === 'mine') return isMine(t)
+    return t.assignee === other || t.assignee === 'Both'
   }
 
   const openCount = tasks.filter((t) => !t.done).length
+  const mineOpen = tasks.filter((t) => !t.done && isMine(t)).length
 
   return (
     <div>
@@ -51,10 +101,10 @@ export function Todos() {
           Mind
         </Chip>
         <Chip active={who === 'mine'} onClick={() => setWho('mine')}>
-          Enyém
+          Enyém · {mineOpen}
         </Chip>
         <Chip active={who === 'other'} onClick={() => setWho('other')}>
-          {other}é
+          {personName(other)}é
         </Chip>
         <button
           onClick={() => setHideDone((v) => !v)}
@@ -84,7 +134,15 @@ export function Todos() {
         }}
       >
         {PHASES.map((phase) => (
-          <PhaseSection key={phase} phase={phase} matchesWho={matchesWho} hideDone={hideDone} assignDefault={actingAs} />
+          <PhaseSection
+            key={phase}
+            phase={phase}
+            matchesWho={matchesWho}
+            hideDone={hideDone}
+            actingAs={actingAs}
+            addAssignee={addAssignee}
+            onCycleAdd={() => setAddAssignee((a) => nextAddAssignee(a, actingAs))}
+          />
         ))}
       </div>
     </div>
@@ -95,12 +153,16 @@ function PhaseSection({
   phase,
   matchesWho,
   hideDone,
-  assignDefault,
+  actingAs,
+  addAssignee,
+  onCycleAdd,
 }: {
   phase: Phase
   matchesWho: (t: Task) => boolean
   hideDone: boolean
-  assignDefault: Assignee
+  actingAs: Person
+  addAssignee: Assignee
+  onCycleAdd: () => void
 }) {
   const tasks = useStore((s) => s.tasks)
   const addTask = useStore((s) => s.addTask)
@@ -112,7 +174,7 @@ function PhaseSection({
 
   const add = () => {
     if (!draft.trim()) return
-    addTask(draft, phase, assignDefault)
+    addTask(draft, phase, addAssignee)
     setDraft('')
   }
 
@@ -144,6 +206,7 @@ function PhaseSection({
           placeholder="Új feladat…"
           style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5 }}
         />
+        <AssigneeChip who={addAssignee} perspective={actingAs} onCycle={onCycleAdd} />
       </div>
 
       {visible.length === 0 ? (
@@ -159,6 +222,7 @@ function PhaseSection({
 
 function TaskRow({ task }: { task: Task }) {
   const toggleTask = useStore((s) => s.toggleTask)
+  const updateTask = useStore((s) => s.updateTask)
   const flashId = useStore((s) => s.flashId)
 
   return (
@@ -209,7 +273,7 @@ function TaskRow({ task }: { task: Task }) {
         <span style={{ fontFamily: font.mono, fontSize: 11.5, color: dueColor(task.due) }}>{fmtDue(task.due)}</span>
       )}
 
-      <AssigneeChip who={task.assignee} />
+      <AssigneeChip who={task.assignee} onCycle={() => updateTask(task.id, { assignee: NEXT_ASSIGNEE[task.assignee] })} />
     </div>
   )
 }

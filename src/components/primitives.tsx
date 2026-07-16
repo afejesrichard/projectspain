@@ -1,5 +1,6 @@
 import { color, font, hexA } from '../theme'
-import type { Assignee } from '../types'
+import type { Assignee, Person } from '../types'
+import { assigneeLabel } from '../lib/people'
 
 // --- Chip (filter / segmented) ---------------------------------------------
 export function Chip({
@@ -87,29 +88,59 @@ export function PhotoPlaceholder({
 }
 
 // --- Assignee chip ----------------------------------------------------------
-export function AssigneeChip({ who }: { who: Assignee }) {
-  const label = who === 'Both' ? 'Közös' : who
+// Read-only by default. Pass `onCycle` to make it a tap-to-cycle control.
+// Pass `perspective` (the current editor) to show relative labels — the
+// current editor's own tasks read "Én" instead of their name.
+export function AssigneeChip({
+  who,
+  onCycle,
+  perspective,
+}: {
+  who: Assignee
+  onCycle?: () => void
+  perspective?: Person
+}) {
+  const label =
+    perspective && who === perspective ? 'Én' : assigneeLabel(who)
   const tint =
     who === 'Richard' ? color.keep : who === 'Dorka' ? color.give : color.softInk
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        fontSize: 11.5,
-        fontWeight: 500,
-        color: color.mutedInk,
-        background: hexA(tint, 0.1),
-        border: `1px solid ${hexA(tint, 0.35)}`,
-        borderRadius: 20,
-        padding: '2px 9px',
-        whiteSpace: 'nowrap',
-      }}
-    >
+
+  const inner = (
+    <>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: tint }} />
       {label}
-    </span>
+    </>
+  )
+  const base: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    fontSize: 11.5,
+    fontWeight: 500,
+    color: color.mutedInk,
+    background: hexA(tint, 0.1),
+    border: `1px solid ${hexA(tint, 0.35)}`,
+    borderRadius: 20,
+    whiteSpace: 'nowrap',
+  }
+
+  if (!onCycle) {
+    return <span style={{ ...base, padding: '2px 9px' }}>{inner}</span>
+  }
+  return (
+    <button
+      onClick={onCycle}
+      aria-label={`Felelős: ${assigneeLabel(who)} — koppints a váltáshoz`}
+      style={{
+        ...base,
+        cursor: 'pointer',
+        // roomier tap target for one-handed phone use
+        padding: '7px 11px',
+        minHeight: 34,
+      }}
+    >
+      {inner}
+    </button>
   )
 }
 

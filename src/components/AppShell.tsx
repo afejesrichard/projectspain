@@ -7,6 +7,7 @@ import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare } fr
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
+import { personName } from '../lib/people'
 
 // --- Acting-as switch: not a security control, just whose name goes on a
 // proposal and whose sign-off an approval represents. ------------------------
@@ -30,7 +31,7 @@ function ActingAsSwitch({ small = false }: { small?: boolean }) {
         color: active ? color.paper : color.shellMuted,
       }}
     >
-      {who}
+      {personName(who)}
     </button>
   )
   return (
