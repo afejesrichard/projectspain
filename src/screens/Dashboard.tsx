@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { color, font, DISPOSITIONS, DISPOSITION_ORDER, fmtHUF } from '../theme'
 import { useStore } from '../store'
-import { PHASES, DAYS_TO_MOVE } from '../data/constants'
+import { PHASES } from '../data/constants'
 import { IconCopy, IconCheck } from '../components/icons'
 import { Skeleton } from '../components/primitives'
 import { useState } from 'react'
@@ -49,7 +49,7 @@ export function Dashboard() {
             {pct}%
           </div>
           <div style={{ fontFamily: font.mono, fontSize: 13, color: color.mutedInk, marginTop: 4 }}>
-            {done} / {total} feladat kész · {DAYS_TO_MOVE} nap a költözésig
+            {done} / {total} feladat kész
           </div>
         </div>
         <DashboardCopyButton />

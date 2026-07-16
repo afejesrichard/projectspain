@@ -248,17 +248,16 @@ export function ItemDetail() {
           </div>
         )}
 
-        {/* private note (give) — never leaves this screen */}
-        {isGive && (
-          <div style={{ border: `1px dashed ${color.line}`, borderRadius: 10, padding: '14px 16px', background: hexA(color.line, 0.14) }}>
-            <FieldLabel>Kié lesz · privát</FieldLabel>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onBlur={commitNote}
-              rows={2}
-              placeholder="Pl. A szomszéd Nagy családnak ígérve."
-              style={{
+        {/* private note — on every item, never leaves this screen */}
+        <div style={{ border: `1px dashed ${color.line}`, borderRadius: 10, padding: '14px 16px', background: hexA(color.line, 0.14) }}>
+          <FieldLabel>{isGive ? 'Kié lesz · privát jegyzet' : 'Privát jegyzet'}</FieldLabel>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            onBlur={commitNote}
+            rows={2}
+            placeholder={isGive ? 'Pl. A szomszéd Nagy családnak ígérve.' : 'Csak nektek — pl. a vevő szombaton jön érte.'}
+            style={{
                 width: '100%',
                 border: `1px solid ${color.line}`,
                 borderRadius: 8,
@@ -269,11 +268,10 @@ export function ItemDetail() {
                 outline: 'none',
               }}
             />
-            <div style={{ fontSize: 11.5, color: color.faintInk, marginTop: 5 }}>
-              Soha nem jelenik meg a publikus oldalon.
-            </div>
+          <div style={{ fontSize: 11.5, color: color.faintInk, marginTop: 5 }}>
+            Soha nem jelenik meg a publikus oldalon.
           </div>
-        )}
+        </div>
 
         {/* delete — quiet entry, deliberate two-step confirm */}
         <div style={{ borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18, marginTop: 4 }}>
