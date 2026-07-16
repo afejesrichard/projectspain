@@ -26,7 +26,7 @@ function Splash() {
         letterSpacing: '0.08em',
       }}
     >
-      Manifest…
+      Project Spain…
     </div>
   )
 }

@@ -46,8 +46,8 @@ export function Login() {
         }}
       >
         <div>
-          <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 40, letterSpacing: '-0.02em' }}>
-            Manifest
+          <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 36, letterSpacing: '-0.02em' }}>
+            Project Spain
           </div>
           <div style={{ fontFamily: font.mono, fontSize: 12, letterSpacing: '0.04em', color: color.softInk, marginTop: 4 }}>
             richard &amp; dorka · a költözés
