@@ -6,12 +6,7 @@ import { useIsDesktop } from '../hooks/useMedia'
 import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare } from './icons'
 import type { Person } from '../types'
 
-const PUBLIC_PATH = '/nyilvanos'
-
-function publicUrl() {
-  if (typeof window === 'undefined') return PUBLIC_PATH
-  return window.location.origin + PUBLIC_PATH
-}
+import { publicShareUrl } from '../lib/shareUrl'
 
 // --- Acting-as switch: not a security control, just whose name goes on a
 // proposal and whose sign-off an approval represents. ------------------------
@@ -50,7 +45,7 @@ function CopyLinkButton({ variant }: { variant: 'shell' | 'solid' }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(publicUrl())
+      await navigator.clipboard.writeText(publicShareUrl())
     } catch {
       /* clipboard blocked — the label still confirms intent */
     }

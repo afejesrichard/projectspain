@@ -3,7 +3,13 @@
 A private, mobile-first relocation app for two people (Richard & Dorka) turning
 the chaos of packing up a home into something they can **see, agree on, and act
 on** — plus a public, read-only catalogue that makes the "for sale" pile easy to
-share over a WhatsApp link.
+share with a single link.
+
+**Live (GitHub Pages):** https://afejesrichard.github.io/projectspain/
+**Public catalogue:** https://afejesrichard.github.io/projectspain/#/nyilvanos
+
+Deployed automatically by GitHub Actions on every push (see
+`.github/workflows/deploy.yml`) — nothing to install or run locally.
 
 Built from the Claude Design brief. The interface is a **shipping manifest**:
 every object accounted for, tagged, and given a destination. The signature
@@ -33,13 +39,20 @@ Keep tags are always solid. Sell / Give / Throw are **removals**: they start
 
 | Route | Screen |
 | --- | --- |
-| `/belepes` | Login (single shared password) |
-| `/` | Dashboard — the operations board |
-| `/leltar` | Inventory grid (filters + search) |
-| `/leltar/:id` | Item detail (in-place editing + approval strip) |
-| `/feladatok` | To-do board, grouped by phase |
-| `/jovahagyas` | Needs-approval queue |
-| `/nyilvanos` | **Public** read-only catalogue (no login) |
+| `#/belepes` | Login (single shared password) |
+| `#/` | Dashboard — the operations board |
+| `#/leltar` | Inventory grid (filters + search) |
+| `#/leltar/:id` | Item detail (in-place editing + approval strip) |
+| `#/feladatok` | To-do board, grouped by phase |
+| `#/jovahagyas` | Needs-approval queue |
+| `#/nyilvanos` | **Public** read-only catalogue (no login) |
+
+Routing is hash-based so the SPA works on GitHub Pages (which has no server
+fallback): deep links always resolve and the shared link never 404s.
+
+The public catalogue is deliberately a **read-only shop window**: no contact
+details, no claim form, no navigation into the private app. Buyers reach out
+however they already know you.
 
 ## Data model & privacy
 
@@ -55,7 +68,13 @@ leak there. This is enforced at the database, not just the UI:
 
 See `supabase/migrations/` for the exact schema, RLS policies, and seed data.
 
-## Getting started
+## Deployment
+
+Every push to `main` builds the app and deploys it to GitHub Pages via
+`.github/workflows/deploy.yml`. The Vite `base` is relative (`./`), so the build
+works from the Pages subpath without hardcoding the repo name.
+
+## Local development (optional)
 
 ```bash
 npm install
