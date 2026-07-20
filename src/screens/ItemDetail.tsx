@@ -232,6 +232,9 @@ export function ItemDetail() {
           </div>
         </div>
 
+        {/* box (Visszük items only) */}
+        {item.disposition === 'keep' && <BoxPicker itemId={item.id} boxId={item.boxId} />}
+
         {/* publish */}
         {publishable && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18 }}>
@@ -305,6 +308,51 @@ export function ItemDetail() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Which box is this Visszük item packed in? Chips for each box + "none".
+function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) {
+  const boxes = useStore((s) => s.boxes)
+  const updateItem = useStore((s) => s.updateItem)
+  const navigate = useNavigate()
+
+  return (
+    <div>
+      <FieldLabel>Doboz</FieldLabel>
+      {boxes.length === 0 ? (
+        <div style={{ fontSize: 13.5, color: color.faintInk }}>
+          Még nincs doboz —{' '}
+          <button
+            onClick={() => navigate('/dobozok')}
+            style={{ border: 'none', background: 'transparent', color: color.keep, cursor: 'pointer', padding: 0, fontSize: 13.5 }}
+          >
+            hozz létre egyet a Dobozok fülön
+          </button>
+          .
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Chip active={boxId == null} onClick={() => updateItem(itemId, { boxId: null })}>
+            Nincs dobozban
+          </Chip>
+          {boxes.map((b) => (
+            <Chip key={b.id} active={boxId === b.id} onClick={() => updateItem(itemId, { boxId: b.id })}>
+              #{b.id}
+              {b.label ? ` · ${b.label}` : ''}
+            </Chip>
+          ))}
+        </div>
+      )}
+      {boxId != null && (
+        <button
+          onClick={() => navigate(`/dobozok/${boxId}`)}
+          style={{ border: 'none', background: 'transparent', color: color.keep, cursor: 'pointer', padding: '8px 0 0', fontSize: 13 }}
+        >
+          Doboz megnyitása →
+        </button>
+      )}
     </div>
   )
 }

@@ -9,6 +9,8 @@ import { Dashboard } from './screens/Dashboard'
 import { Inventory } from './screens/Inventory'
 import { ItemDetail } from './screens/ItemDetail'
 import { Todos } from './screens/Todos'
+import { Boxes } from './screens/Boxes'
+import { BoxDetail } from './screens/BoxDetail'
 import { ApprovalQueue } from './screens/ApprovalQueue'
 import { PublicPage } from './screens/PublicPage'
 
@@ -70,6 +72,8 @@ export default function App() {
         <Route path="/leltar" element={<Inventory />} />
         <Route path="/leltar/:id" element={<ItemDetail />} />
         <Route path="/feladatok" element={<Todos />} />
+        <Route path="/dobozok" element={<Boxes />} />
+        <Route path="/dobozok/:id" element={<BoxDetail />} />
         <Route path="/jovahagyas" element={<ApprovalQueue />} />
       </Route>
 

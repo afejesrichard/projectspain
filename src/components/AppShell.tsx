@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { color, font } from '../theme'
 import { useStore } from '../store'
 import { useIsDesktop } from '../hooks/useMedia'
-import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare } from './icons'
+import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare, IconPackage } from './icons'
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
@@ -124,16 +124,18 @@ function CountBadge({ n, tone = 'amber' }: { n: number; tone?: 'amber' | 'small'
 type NavItem = { to: string; label: string; short?: string; icon: string; end: boolean; badge?: boolean }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Áttekintés', icon: 'grid', end: true },
+  { to: '/', label: 'Áttekintés', short: 'Áttek.', icon: 'grid', end: true },
   { to: '/leltar', label: 'Leltár', icon: 'box', end: false },
-  { to: '/feladatok', label: 'Feladatok', icon: 'check', end: false },
-  { to: '/jovahagyas', label: 'Jóváhagyásra vár', short: 'Jóváhagyás', icon: 'stamp', end: false, badge: true },
+  { to: '/feladatok', label: 'Feladatok', short: 'Feladat', icon: 'check', end: false },
+  { to: '/dobozok', label: 'Dobozok', short: 'Doboz', icon: 'package', end: false },
+  { to: '/jovahagyas', label: 'Jóváhagyásra vár', short: 'Jóváhagy.', icon: 'stamp', end: false, badge: true },
 ]
 
 function NavIcon({ name }: { name: string }) {
   if (name === 'grid') return <IconGrid size={16} />
   if (name === 'box') return <IconBox size={16} />
   if (name === 'check') return <IconCheckSquare size={16} />
+  if (name === 'package') return <IconPackage size={16} />
   return <IconStamp size={16} />
 }
 
@@ -283,13 +285,14 @@ function tabStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    padding: '9px 4px',
+    gap: 5,
+    padding: '9px 2px',
     borderRadius: 8,
     border: 'none',
     cursor: 'pointer',
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: 600,
+    whiteSpace: 'nowrap',
     textDecoration: 'none',
     background: isActive ? color.shellHover : 'transparent',
     color: isActive ? color.paper : color.shellMuted,

@@ -55,6 +55,7 @@ export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => 
       published: publishable ? published : false,
       privateNote: null,
       description: description.trim() || null,
+      boxId: null,
     })
     if (id != null) onClose()
     else setSaving(false)

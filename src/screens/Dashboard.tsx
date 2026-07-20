@@ -14,6 +14,7 @@ export function Dashboard() {
   const tasks = useStore((s) => s.tasks)
   const loading = useStore((s) => s.loading)
   const actingAs = useStore((s) => s.actingAs)
+  const boxes = useStore((s) => s.boxes)
 
   const total = tasks.length
   const done = tasks.filter((t) => t.done).length
@@ -152,6 +153,11 @@ export function Dashboard() {
           onClick={() => navigate('/feladatok?nezet=enyem')}
           label="Feladatok megnyitása"
           note={`${openTasks} nyitott · ebből tiéd: ${mineOpen}`}
+        />
+        <QuickEntry
+          onClick={() => navigate('/dobozok')}
+          label="Dobozok megnyitása"
+          note={`${boxes.length} doboz · ${boxes.filter((b) => b.sealed).length} lezárva`}
         />
       </div>
     </div>

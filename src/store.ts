@@ -1,10 +1,10 @@
 import { create } from 'zustand'
-import type { Item, Task, ItemNote, Person, ItemStatus, Assignee, Phase } from './types'
+import type { Item, Task, ItemNote, Box, Person, ItemStatus, Assignee, Phase } from './types'
 import type { Disposition } from './theme'
 import { supabase } from './lib/supabase'
 import * as repo from './data/repo'
-import { rowToItem, rowToTask, rowToNote, rowPatchToItem } from './data/repo'
-import type { ItemRow, TaskRow, NoteRow } from './data/repo'
+import { rowToItem, rowToTask, rowToNote, rowToBox, rowPatchToItem, rowPatchToBox } from './data/repo'
+import type { ItemRow, TaskRow, NoteRow, BoxRow } from './data/repo'
 
 const ACTING_KEY = 'manifest-acting-as'
 
@@ -24,6 +24,7 @@ interface ManifestState {
   items: Item[]
   tasks: Task[]
   notes: ItemNote[]
+  boxes: Box[]
   flashId: number | null
 
   // lifecycle
@@ -54,6 +55,11 @@ interface ManifestState {
 
   // notes
   addNote: (itemId: number, body: string) => Promise<void>
+
+  // boxes
+  addBox: () => Promise<number | null>
+  updateBox: (id: number, patch: Partial<Box>) => Promise<void>
+  removeBox: (id: number) => Promise<void>
 }
 
 let realtimeBound = false
@@ -68,6 +74,7 @@ export const useStore = create<ManifestState>((set, get) => ({
   items: [],
   tasks: [],
   notes: [],
+  boxes: [],
   flashId: null,
 
   init: () => {
@@ -83,7 +90,7 @@ export const useStore = create<ManifestState>((set, get) => ({
       const wasAuthed = get().authed
       set({ authed })
       if (authed && !wasAuthed) get().loadData()
-      if (!authed) set({ items: [], tasks: [], notes: [] })
+      if (!authed) set({ items: [], tasks: [], notes: [], boxes: [] })
     })
 
     if (!realtimeBound) {
@@ -139,6 +146,23 @@ export const useStore = create<ManifestState>((set, get) => ({
             }
           })
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'boxes' }, (payload) => {
+          set((s) => {
+            if (payload.eventType === 'DELETE') {
+              const oldId = (payload.old as { id?: number }).id
+              return { boxes: s.boxes.filter((b) => b.id !== oldId) }
+            }
+            const raw = payload.new as unknown as Partial<BoxRow>
+            if (raw.id == null) return {}
+            const exists = s.boxes.some((b) => b.id === raw.id)
+            if (!exists) {
+              return { boxes: [...s.boxes, rowToBox(raw as BoxRow)].sort((a, b) => a.id - b.id) }
+            }
+            // Merge — photos may be TOAST-omitted from UPDATE payloads.
+            const patch = rowPatchToBox(raw)
+            return { boxes: s.boxes.map((b) => (b.id === raw.id ? { ...b, ...patch } : b)) }
+          })
+        })
         .subscribe()
     }
   },
@@ -146,12 +170,13 @@ export const useStore = create<ManifestState>((set, get) => ({
   loadData: async () => {
     set({ loading: true })
     try {
-      const [items, tasks, notes] = await Promise.all([
+      const [items, tasks, notes, boxes] = await Promise.all([
         repo.fetchItems(),
         repo.fetchTasks(),
         repo.fetchNotes(),
+        repo.fetchBoxes(),
       ])
-      set({ items, tasks, notes, loading: false })
+      set({ items, tasks, notes, boxes, loading: false })
     } catch {
       set({ loading: false })
     }
@@ -168,7 +193,7 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   logout: async () => {
     await repo.signOut()
-    set({ authed: false, items: [], tasks: [], notes: [] })
+    set({ authed: false, items: [], tasks: [], notes: [], boxes: [] })
   },
 
   setActingAs: (p) => {
@@ -210,6 +235,8 @@ export const useStore = create<ManifestState>((set, get) => ({
       patch = wasApprovedRemoval
         ? { disposition: d }
         : { disposition: d, awaiting: true, stamped: false, proposedBy: get().actingAs }
+      // Something being sold / given / thrown away is not coming in a box.
+      if (it.boxId != null) patch.boxId = null
     }
     await get().updateItem(id, patch)
   },
@@ -309,6 +336,39 @@ export const useStore = create<ManifestState>((set, get) => ({
       set((s) => ({ notes: [...s.notes.filter((n) => n.id !== created.id), created] }))
     } catch {
       /* ignore */
+    }
+  },
+
+  addBox: async () => {
+    try {
+      const created = await repo.insertBox()
+      set((s) => ({ boxes: [...s.boxes.filter((b) => b.id !== created.id), created].sort((a, b) => a.id - b.id) }))
+      return created.id
+    } catch {
+      return null
+    }
+  },
+
+  updateBox: async (id, patch) => {
+    set((s) => ({ boxes: s.boxes.map((b) => (b.id === id ? { ...b, ...patch } : b)) }))
+    try {
+      await repo.patchBox(id, patch)
+    } catch {
+      get().loadData()
+    }
+  },
+
+  removeBox: async (id) => {
+    // Optimistic: the box goes, its items are unpacked (mirrors the FK's
+    // on delete set null).
+    set((s) => ({
+      boxes: s.boxes.filter((b) => b.id !== id),
+      items: s.items.map((it) => (it.boxId === id ? { ...it, boxId: null } : it)),
+    }))
+    try {
+      await repo.deleteBox(id)
+    } catch {
+      get().loadData()
     }
   },
 }))

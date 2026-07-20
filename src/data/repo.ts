@@ -1,5 +1,5 @@
 import { supabase, EDITOR_EMAIL } from '../lib/supabase'
-import type { Item, Task, ItemNote, Person, Phase, Assignee, Priority, ItemStatus } from '../types'
+import type { Item, Task, ItemNote, Box, Person, Phase, Assignee, Priority, ItemStatus } from '../types'
 import type { Disposition } from '../theme'
 
 // --- Row shapes (snake_case, as stored) ------------------------------------
@@ -17,6 +17,7 @@ interface ItemRow {
   proposed_by: Person | null
   private_note: string | null
   description: string | null
+  box_id: number | null
   created_at?: string
 }
 
@@ -59,6 +60,7 @@ export function rowToItem(r: ItemRow): Item {
     proposedBy: r.proposed_by,
     privateNote: r.private_note,
     description: r.description,
+    boxId: r.box_id ?? null,
   }
 }
 
@@ -76,6 +78,7 @@ function itemToRow(it: Partial<Item>): Partial<ItemRow> {
   if (it.proposedBy !== undefined) row.proposed_by = it.proposedBy
   if (it.privateNote !== undefined) row.private_note = it.privateNote
   if (it.description !== undefined) row.description = it.description
+  if (it.boxId !== undefined) row.box_id = it.boxId
   return row
 }
 
@@ -97,6 +100,7 @@ export function rowPatchToItem(raw: Partial<ItemRow>): Partial<Item> {
   if ('proposed_by' in raw) p.proposedBy = raw.proposed_by ?? null
   if ('private_note' in raw) p.privateNote = raw.private_note ?? null
   if ('description' in raw) p.description = raw.description ?? null
+  if ('box_id' in raw) p.boxId = raw.box_id ?? null
   return p
 }
 
@@ -180,6 +184,74 @@ export async function deleteItem(id: number): Promise<void> {
   const { error } = await supabase.from('items').delete().eq('id', id)
   if (error) throw error
 }
+
+// --- Boxes (Dobozok) --------------------------------------------------------
+interface BoxRow {
+  id: number
+  label: string
+  room: string
+  note: string
+  sealed: boolean
+  photos: string[]
+  created_at?: string
+}
+
+export function rowToBox(r: BoxRow): Box {
+  return {
+    id: r.id,
+    label: r.label ?? '',
+    room: r.room ?? '',
+    note: r.note ?? '',
+    sealed: !!r.sealed,
+    photos: Array.isArray(r.photos) ? r.photos : [],
+  }
+}
+
+// TOAST-safe partial mapper (photos can be omitted from UPDATE payloads).
+export function rowPatchToBox(raw: Partial<BoxRow>): Partial<Box> {
+  const p: Partial<Box> = {}
+  if ('label' in raw) p.label = raw.label ?? ''
+  if ('room' in raw) p.room = raw.room ?? ''
+  if ('note' in raw) p.note = raw.note ?? ''
+  if ('sealed' in raw) p.sealed = !!raw.sealed
+  if ('photos' in raw) p.photos = Array.isArray(raw.photos) ? raw.photos : []
+  return p
+}
+
+function boxToRow(b: Partial<Box>): Partial<BoxRow> {
+  const row: Partial<BoxRow> = {}
+  if (b.label !== undefined) row.label = b.label
+  if (b.room !== undefined) row.room = b.room
+  if (b.note !== undefined) row.note = b.note
+  if (b.sealed !== undefined) row.sealed = b.sealed
+  if (b.photos !== undefined) row.photos = b.photos
+  return row
+}
+
+export async function fetchBoxes(): Promise<Box[]> {
+  const { data, error } = await supabase.from('boxes').select('*').order('id', { ascending: true })
+  if (error) throw error
+  return (data as BoxRow[]).map(rowToBox)
+}
+
+// Creates the next-numbered box; the returned id is the number to write on it.
+export async function insertBox(): Promise<Box> {
+  const { data, error } = await supabase.from('boxes').insert({}).select('*').single()
+  if (error) throw error
+  return rowToBox(data as BoxRow)
+}
+
+export async function patchBox(id: number, patch: Partial<Box>): Promise<void> {
+  const { error } = await supabase.from('boxes').update(boxToRow(patch)).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteBox(id: number): Promise<void> {
+  const { error } = await supabase.from('boxes').delete().eq('id', id)
+  if (error) throw error
+}
+
+export type { BoxRow }
 
 // --- Item notes (private thread) -------------------------------------------
 interface NoteRow {

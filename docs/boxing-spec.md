@@ -64,11 +64,21 @@ New `boxes` table (RLS editor-only, realtime, never public):
 Boxes never appear on the public page or in the public view — there is nothing
 to publish. RLS mirrors items: authenticated editors only.
 
+## Item → box linking (v1, per owner request)
+
+**Visszük** (keep) items can be packed into a box:
+
+- `items.box_id` — nullable FK to `boxes`, `on delete set null` (deleting a
+  box unpacks its items, never deletes them).
+- **Item detail** (Visszük items only): a "Doboz" picker — choose a box
+  (`#12 · konyha`) or "Nincs dobozban".
+- **Box detail** lists its packed items (thumbnail + name), each opening the
+  item. The box card shows `3 tárgy · 5 fotó`.
+- Changing an item's disposition away from Visszük clears its `box_id` —
+  something being sold or given away is by definition not coming in a box.
+
 ## Out of scope (possible later)
 
-- Linking inventory items to a box ("Melyik dobozban van a kávégép?") — a
-  `box_id` on items with a chip on the item detail. Deferred so v1 stays light;
-  the photos answer most "where is it" questions.
 - QR/label printing, box weight, unpacked-tracking in the new home.
 
 ## Storage budget

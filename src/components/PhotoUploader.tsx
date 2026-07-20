@@ -32,9 +32,18 @@ async function compress(file: File, maxDim = 1280, quality = 0.72): Promise<stri
 export function PhotoUploader({
   photos,
   onChange,
+  maxPhotos = 3,
+  maxDim = 1280,
+  quality = 0.72,
+  onPhotoClick,
 }: {
   photos: string[]
   onChange: (photos: string[]) => void
+  maxPhotos?: number
+  maxDim?: number
+  quality?: number
+  /** When set, tapping a thumbnail opens it (e.g. in a lightbox). */
+  onPhotoClick?: (url: string) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -47,10 +56,10 @@ export function PhotoUploader({
     setBusy(true)
     try {
       const added: string[] = []
-      for (const f of Array.from(files).slice(0, 3)) {
-        added.push(await compress(f))
+      for (const f of Array.from(files).slice(0, maxPhotos)) {
+        added.push(await compress(f, maxDim, quality))
       }
-      onChange([...real, ...added].slice(0, 3))
+      onChange([...real, ...added].slice(0, maxPhotos))
     } finally {
       setBusy(false)
       if (inputRef.current) inputRef.current.value = ''
@@ -96,7 +105,7 @@ export function PhotoUploader({
             {busy ? 'Tömörítés…' : 'Fotó készítése vagy választása'}
           </span>
           <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faintInk }}>
-            {busy ? '' : 'akár 3 kép'}
+            {busy ? '' : `akár ${maxPhotos} kép`}
           </span>
         </button>
       ) : (
@@ -106,7 +115,16 @@ export function PhotoUploader({
               <img
                 src={p}
                 alt={`fotó ${i + 1}`}
-                style={{ width: 92, height: 74, objectFit: 'cover', borderRadius: 8, border: `1px solid ${color.line}` }}
+                onClick={onPhotoClick ? () => onPhotoClick(p) : undefined}
+                style={{
+                  width: 92,
+                  height: 74,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  border: `1px solid ${color.line}`,
+                  cursor: onPhotoClick ? 'zoom-in' : undefined,
+                  display: 'block',
+                }}
               />
               <button
                 type="button"
@@ -131,7 +149,7 @@ export function PhotoUploader({
               </button>
             </div>
           ))}
-          {real.length < 3 && (
+          {real.length < maxPhotos && (
             <button
               type="button"
               onClick={pick}
