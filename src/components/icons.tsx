@@ -42,6 +42,15 @@ export function IconBox({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
   )
 }
 
+export function IconPackage({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <rect x="3" y="6" width="18" height="14" rx="2" />
+      <path d="M3 10h18M12 6v4" />
+    </svg>
+  )
+}
+
 export function IconTag({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
   return (
     <svg {...svgProps(size, strokeWidth, style)}>

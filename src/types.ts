@@ -18,6 +18,17 @@ export interface Item {
   proposedBy: Person | null
   privateNote: string | null // "who gets it" — never leaves the detail screen / public page
   description: string | null // one-line public description
+  boxId: number | null // Visszük items only: the box they're packed in
+}
+
+// A numbered moving box. The id IS the number written on the physical box.
+export interface Box {
+  id: number
+  label: string
+  room: string
+  note: string
+  sealed: boolean
+  photos: string[]
 }
 
 export interface ItemNote {
