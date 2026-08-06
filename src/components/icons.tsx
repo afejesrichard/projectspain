@@ -102,6 +102,15 @@ export function IconCheck({ size = 14, style, strokeWidth = 2.4 }: IconProps) {
   )
 }
 
+export function IconPencil({ size = 15, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M4 20h4L20.5 7.5a2.1 2.1 0 0 0-3-3L5 17Z" />
+      <path d="m13.5 6.5 4 4" />
+    </svg>
+  )
+}
+
 export function IconArrowLeft({ size = 16, style, strokeWidth = 1.7 }: IconProps) {
   return (
     <svg {...svgProps(size, strokeWidth, style)}>

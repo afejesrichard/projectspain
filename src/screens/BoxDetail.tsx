@@ -6,7 +6,7 @@ import { PhotoUploader } from '../components/PhotoUploader'
 import { Lightbox } from '../components/Lightbox'
 import { Toggle } from '../components/AddItemSheet'
 import { PhotoPlaceholder } from '../components/primitives'
-import { IconArrowLeft } from '../components/icons'
+import { IconArrowLeft, IconCheck, IconPencil } from '../components/icons'
 
 export function BoxDetail() {
   const { id } = useParams()
@@ -15,6 +15,7 @@ export function BoxDetail() {
   const items = useStore((s) => s.items)
   const updateBox = useStore((s) => s.updateBox)
   const removeBox = useStore((s) => s.removeBox)
+  const renumberBox = useStore((s) => s.renumberBox)
 
   const box = boxes.find((b) => b.id === Number(id))
   const [label, setLabel] = useState(box?.label ?? '')
@@ -22,6 +23,10 @@ export function BoxDetail() {
   const [note, setNote] = useState(box?.note ?? '')
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editingNumber, setEditingNumber] = useState(false)
+  const [numberDraft, setNumberDraft] = useState('')
+  const [numberError, setNumberError] = useState<string | null>(null)
+  const [renumbering, setRenumbering] = useState(false)
 
   useEffect(() => {
     if (box) {
@@ -29,6 +34,8 @@ export function BoxDetail() {
       setRoom(box.room)
       setNote(box.note)
     }
+    setEditingNumber(false)
+    setNumberError(null)
   }, [box?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!box) {
@@ -48,14 +55,138 @@ export function BoxDetail() {
     if (changed) updateBox(box.id, Object.fromEntries(entries.map(([k, v]) => [k, v.trim()])))
   }
 
+  const commitNumber = async () => {
+    if (renumbering) return
+    const n = Number(numberDraft)
+    if (!numberDraft || !Number.isInteger(n) || n < 1) {
+      setNumberError('Adj meg egy pozitív egész számot.')
+      return
+    }
+    if (n === box.id) {
+      setEditingNumber(false)
+      setNumberError(null)
+      return
+    }
+    if (boxes.some((b) => b.id === n)) {
+      setNumberError(`A #${n} már foglalt — előbb számozd át a másik dobozt.`)
+      return
+    }
+    setRenumbering(true)
+    const err = await renumberBox(box.id, n)
+    setRenumbering(false)
+    if (err === 'taken') {
+      setNumberError(`A #${n} már foglalt — előbb számozd át a másik dobozt.`)
+      return
+    }
+    if (err) {
+      setNumberError('Nem sikerült átszámozni — próbáld újra.')
+      return
+    }
+    setEditingNumber(false)
+    setNumberError(null)
+    navigate(`/dobozok/${n}`, { replace: true })
+  }
+
   return (
     <div style={{ maxWidth: 760, margin: '0 auto' }}>
       <BackButton onClick={() => navigate('/dobozok')} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-        <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 'clamp(40px,8vw,56px)', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          #{box.id}
-        </span>
+        {editingNumber ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ ...bigNumberStyle, color: color.softInk }}>#</span>
+            <input
+              autoFocus
+              inputMode="numeric"
+              value={numberDraft}
+              onChange={(e) => {
+                setNumberDraft(e.target.value.replace(/\D/g, ''))
+                setNumberError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitNumber()
+                if (e.key === 'Escape') {
+                  setEditingNumber(false)
+                  setNumberError(null)
+                }
+              }}
+              disabled={renumbering}
+              style={{
+                ...bigNumberStyle,
+                width: `${Math.max(numberDraft.length, 1) + 0.5}ch`,
+                border: 'none',
+                borderBottom: `2px dashed ${color.line}`,
+                background: 'transparent',
+                outline: 'none',
+                padding: 0,
+              }}
+            />
+            <button
+              onClick={commitNumber}
+              disabled={renumbering}
+              title="Átszámozás"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 38,
+                height: 38,
+                borderRadius: 9,
+                border: 'none',
+                background: color.ink,
+                color: color.paper,
+                cursor: renumbering ? 'default' : 'pointer',
+                opacity: renumbering ? 0.6 : 1,
+              }}
+            >
+              <IconCheck size={16} />
+            </button>
+            <button
+              onClick={() => {
+                setEditingNumber(false)
+                setNumberError(null)
+              }}
+              disabled={renumbering}
+              style={{
+                padding: '9px 14px',
+                borderRadius: 9,
+                border: `1px solid ${color.line}`,
+                background: color.cardWhite,
+                color: color.mutedInk,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Mégse
+            </button>
+          </span>
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            <span style={bigNumberStyle}>#{box.id}</span>
+            <button
+              onClick={() => {
+                setNumberDraft(String(box.id))
+                setEditingNumber(true)
+              }}
+              title="Átszámozás"
+              aria-label="Átszámozás"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                border: `1px solid ${color.line}`,
+                background: 'transparent',
+                color: color.softInk,
+                cursor: 'pointer',
+              }}
+            >
+              <IconPencil size={14} />
+            </button>
+          </span>
+        )}
         {box.sealed && (
           <span
             style={{
@@ -76,6 +207,13 @@ export function BoxDetail() {
           {packed.length} tárgy · {box.photos.length} fotó
         </span>
       </div>
+
+      {editingNumber && (
+        <div style={{ marginTop: -12, marginBottom: 20, fontSize: 13, color: numberError ? color.throw : color.softInk }}>
+          {numberError ??
+            'Írd át a számot arra, ami a dobozon szerepel — a benne lévő tárgyak követik.'}
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         {/* photos of the contents */}
@@ -282,6 +420,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </div>
   )
+}
+
+const bigNumberStyle: React.CSSProperties = {
+  fontFamily: font.mono,
+  fontWeight: 700,
+  fontSize: 'clamp(40px,8vw,56px)',
+  letterSpacing: '-0.02em',
+  lineHeight: 1,
 }
 
 const inputStyle: React.CSSProperties = {
