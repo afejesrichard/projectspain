@@ -26,8 +26,13 @@ New `boxes` table (RLS editor-only, realtime, never public):
 | `created_at` / `updated_at` | timestamptz | |
 
 - Numbering is automatic and sequential (1, 2, 3…). Deleting a box leaves a
-  gap in the numbering — exactly like real life, and it guarantees a number is
-  never reused for a different box.
+  gap in the numbering — exactly like real life.
+- **Renumbering:** a box's number can be changed from its detail screen (pencil
+  next to the big `#N`) — for matching the app to what's already written on the
+  physical box, or reclaiming a gap. Done atomically in the database via the
+  `renumber_box` RPC: packed items follow (`on update cascade`), a taken number
+  is rejected, and the identity sequence is bumped past any hand-picked number
+  so the next **Új doboz** never collides.
 - Photos: same inline data-URL approach as items, but compressed harder
   (max 1024px, q0.65 ≈ 100–180 KB each) and allowing **up to 8 per box**,
   since a box holds many things. Realtime updates use the same

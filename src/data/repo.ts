@@ -251,6 +251,14 @@ export async function deleteBox(id: number): Promise<void> {
   if (error) throw error
 }
 
+// Atomic renumber (the id IS the box number): items follow via the FK's
+// on update cascade. Throws with a message containing BOX_NUMBER_TAKEN /
+// BOX_NUMBER_INVALID / BOX_NOT_FOUND on the corresponding failure.
+export async function renumberBox(oldId: number, newId: number): Promise<void> {
+  const { error } = await supabase.rpc('renumber_box', { p_old: oldId, p_new: newId })
+  if (error) throw error
+}
+
 export type { BoxRow }
 
 // --- Item notes (private thread) -------------------------------------------

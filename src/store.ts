@@ -60,6 +60,8 @@ interface ManifestState {
   addBox: () => Promise<number | null>
   updateBox: (id: number, patch: Partial<Box>) => Promise<void>
   removeBox: (id: number) => Promise<void>
+  // Resolves to null on success, or an error code: 'taken' | 'error'.
+  renumberBox: (id: number, newId: number) => Promise<'taken' | 'error' | null>
 }
 
 let realtimeBound = false
@@ -154,13 +156,24 @@ export const useStore = create<ManifestState>((set, get) => ({
             }
             const raw = payload.new as unknown as Partial<BoxRow>
             if (raw.id == null) return {}
-            const exists = s.boxes.some((b) => b.id === raw.id)
-            if (!exists) {
+            // A renumbered box arrives as an UPDATE whose id changed — the old
+            // row must morph into the new id, not linger next to a duplicate.
+            const oldId = (payload.old as { id?: number }).id ?? raw.id
+            const target = s.boxes.some((b) => b.id === oldId)
+              ? oldId
+              : s.boxes.some((b) => b.id === raw.id)
+                ? raw.id
+                : null
+            if (target == null) {
               return { boxes: [...s.boxes, rowToBox(raw as BoxRow)].sort((a, b) => a.id - b.id) }
             }
             // Merge — photos may be TOAST-omitted from UPDATE payloads.
             const patch = rowPatchToBox(raw)
-            return { boxes: s.boxes.map((b) => (b.id === raw.id ? { ...b, ...patch } : b)) }
+            return {
+              boxes: s.boxes
+                .map((b) => (b.id === target ? { ...b, ...patch, id: raw.id! } : b))
+                .sort((a, b) => a.id - b.id),
+            }
           })
         })
         .subscribe()
@@ -356,6 +369,24 @@ export const useStore = create<ManifestState>((set, get) => ({
     } catch {
       get().loadData()
     }
+  },
+
+  renumberBox: async (id, newId) => {
+    // Not optimistic: a taken number is an expected outcome, and flashing the
+    // wrong number onto the header would be worse than a beat of latency.
+    try {
+      await repo.renumberBox(id, newId)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('BOX_NUMBER_TAKEN')) return 'taken'
+      get().loadData()
+      return 'error'
+    }
+    set((s) => ({
+      boxes: s.boxes.map((b) => (b.id === id ? { ...b, id: newId } : b)).sort((a, b) => a.id - b.id),
+      items: s.items.map((it) => (it.boxId === id ? { ...it, boxId: newId } : it)),
+    }))
+    return null
   },
 
   removeBox: async (id) => {
