@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { color, font } from '../theme'
-import { IconCamera, IconPlus } from './icons'
+import { IconCamera, IconImage } from './icons'
 
 // Downscale + compress a picked image to a modest JPEG data URL so photos stay
 // small enough to live inline in the row. Camera-first on mobile.
@@ -45,11 +45,14 @@ export function PhotoUploader({
   /** When set, tapping a thumbnail opens it (e.g. in a lightbox). */
   onPhotoClick?: (url: string) => void
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const real = photos.filter((p) => p.startsWith('data:'))
+  const atLimit = real.length >= maxPhotos
 
-  const pick = () => inputRef.current?.click()
+  const takePhoto = () => cameraRef.current?.click()
+  const choosePhoto = () => galleryRef.current?.click()
 
   const onFiles = async (files: FileList | null) => {
     if (!files || !files.length) return
@@ -62,7 +65,8 @@ export function PhotoUploader({
       onChange([...real, ...added].slice(0, maxPhotos))
     } finally {
       setBusy(false)
-      if (inputRef.current) inputRef.current.value = ''
+      if (cameraRef.current) cameraRef.current.value = ''
+      if (galleryRef.current) galleryRef.current.value = ''
     }
   }
 
@@ -70,8 +74,9 @@ export function PhotoUploader({
 
   return (
     <div>
+      {/* Camera capture — jumps straight to the camera on mobile. */}
       <input
-        ref={inputRef}
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -79,10 +84,17 @@ export function PhotoUploader({
         hidden
         onChange={(e) => onFiles(e.target.files)}
       />
+      {/* Gallery pick — no `capture`, so the OS opens the photo library. */}
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => onFiles(e.target.files)}
+      />
       {real.length === 0 ? (
-        <button
-          type="button"
-          onClick={pick}
+        <div
           style={{
             width: '100%',
             aspectRatio: '16/10',
@@ -95,19 +107,30 @@ export function PhotoUploader({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8,
-            cursor: 'pointer',
+            gap: 12,
             color: color.mutedInk,
           }}
         >
-          <IconCamera size={26} />
-          <span style={{ fontSize: 13.5, fontWeight: 500 }}>
-            {busy ? 'Tömörítés…' : 'Fotó készítése vagy választása'}
-          </span>
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faintInk }}>
-            {busy ? '' : `akár ${maxPhotos} kép`}
-          </span>
-        </button>
+          {busy ? (
+            <span style={{ fontSize: 13.5, fontWeight: 500 }}>Tömörítés…</span>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={takePhoto} style={emptyActionStyle}>
+                  <IconCamera size={22} />
+                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>Fotó készítése</span>
+                </button>
+                <button type="button" onClick={choosePhoto} style={emptyActionStyle}>
+                  <IconImage size={22} />
+                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>Fotó választása</span>
+                </button>
+              </div>
+              <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faintInk }}>
+                {`akár ${maxPhotos} kép`}
+              </span>
+            </>
+          )}
+        </div>
       ) : (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {real.map((p, i) => (
@@ -149,28 +172,56 @@ export function PhotoUploader({
               </button>
             </div>
           ))}
-          {real.length < maxPhotos && (
-            <button
-              type="button"
-              onClick={pick}
-              style={{
-                width: 92,
-                height: 74,
-                borderRadius: 8,
-                border: `1.5px dashed ${color.line}`,
-                background: 'transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: color.mutedInk,
-              }}
-            >
-              {busy ? <span style={{ fontFamily: font.mono, fontSize: 10 }}>…</span> : <IconPlus size={18} />}
-            </button>
+          {!atLimit && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                type="button"
+                onClick={takePhoto}
+                aria-label="Fotó készítése"
+                title="Fotó készítése"
+                style={addTileStyle}
+              >
+                {busy ? <span style={{ fontFamily: font.mono, fontSize: 10 }}>…</span> : <IconCamera size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={choosePhoto}
+                aria-label="Fotó választása"
+                title="Fotó választása"
+                style={addTileStyle}
+              >
+                {busy ? <span style={{ fontFamily: font.mono, fontSize: 10 }}>…</span> : <IconImage size={18} />}
+              </button>
+            </div>
           )}
         </div>
       )}
     </div>
   )
+}
+
+const emptyActionStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+  padding: '12px 16px',
+  borderRadius: 10,
+  border: `1px solid ${color.line}`,
+  background: color.paper,
+  cursor: 'pointer',
+  color: color.mutedInk,
+}
+
+const addTileStyle: React.CSSProperties = {
+  width: 92,
+  height: 34,
+  borderRadius: 8,
+  border: `1.5px dashed ${color.line}`,
+  background: 'transparent',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: color.mutedInk,
 }
