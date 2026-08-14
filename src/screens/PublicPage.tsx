@@ -5,9 +5,12 @@ import { DispositionTag } from '../components/DispositionTag'
 import { Lightbox } from '../components/Lightbox'
 import { PhotoPlaceholder, Skeleton } from '../components/primitives'
 
+type Availability = 'all' | 'available' | 'reserved'
+
 export function PublicPage() {
   const [items, setItems] = useState<PublicItem[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [filter, setFilter] = useState<Availability>('all')
 
   useEffect(() => {
     document.title = 'Project Spain — jó gazdát keresünk'
@@ -20,9 +23,19 @@ export function PublicPage() {
     }
   }, [])
 
-  const forSale = items?.filter((i) => i.disposition === 'sell') ?? []
-  const free = items?.filter((i) => i.disposition === 'give') ?? []
+  const all = items ?? []
+  const matchesFilter = (i: PublicItem) =>
+    filter === 'all' ||
+    (filter === 'reserved' ? i.status === 'reserved' : i.status !== 'reserved')
+
+  const reservedCount = all.filter((i) => i.status === 'reserved').length
+  const availableCount = all.length - reservedCount
+
+  const forSale = all.filter((i) => i.disposition === 'sell' && matchesFilter(i))
+  const free = all.filter((i) => i.disposition === 'give' && matchesFilter(i))
   const nothing = items != null && items.length === 0
+  // Everything is filtered out (but the catalogue itself isn't empty).
+  const emptyAfterFilter = !nothing && all.length > 0 && forSale.length === 0 && free.length === 0
 
   return (
     <div style={{ minHeight: '100vh', background: color.paper, color: color.ink, fontFamily: font.body }}>
@@ -67,6 +80,39 @@ export function PublicPage() {
           </div>
         )}
 
+        {items != null && reservedCount > 0 && (
+          <FilterBar
+            value={filter}
+            onChange={setFilter}
+            counts={{ all: all.length, available: availableCount, reserved: reservedCount }}
+          />
+        )}
+
+        {emptyAfterFilter && (
+          <div style={{ border: `1px dashed ${color.line}`, borderRadius: 12, padding: '40px 24px', textAlign: 'center', marginTop: 24 }}>
+            <div style={{ fontFamily: font.display, fontWeight: 600, fontSize: 17 }}>
+              {filter === 'available' ? 'Most minden le van foglalva.' : 'Nincs ilyen darab.'}
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              style={{
+                marginTop: 12,
+                fontFamily: font.mono,
+                fontSize: 12.5,
+                color: color.mutedInk,
+                background: 'transparent',
+                border: `1px solid ${color.line}`,
+                borderRadius: 999,
+                padding: '7px 14px',
+                cursor: 'pointer',
+              }}
+            >
+              Összes mutatása
+            </button>
+          </div>
+        )}
+
         {forSale.length > 0 && (
           <Section title="Eladó" accent={color.sell} count={forSale.length}>
             {forSale.map((it) => (
@@ -83,6 +129,86 @@ export function PublicPage() {
           </Section>
         )}
       </div>
+    </div>
+  )
+}
+
+function FilterBar({
+  value,
+  onChange,
+  counts,
+}: {
+  value: Availability
+  onChange: (v: Availability) => void
+  counts: { all: number; available: number; reserved: number }
+}) {
+  const options: { key: Availability; label: string; count: number }[] = [
+    { key: 'all', label: 'Összes', count: counts.all },
+    { key: 'available', label: 'Elérhető', count: counts.available },
+    { key: 'reserved', label: 'Lefoglalva', count: counts.reserved },
+  ]
+  return (
+    <div
+      role="group"
+      aria-label="Szűrés elérhetőség szerint"
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 26,
+        alignItems: 'center',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: font.mono,
+          fontSize: 11,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: color.softInk,
+          marginRight: 4,
+        }}
+      >
+        Szűrés
+      </span>
+      {options.map((o) => {
+        const active = value === o.key
+        return (
+          <button
+            key={o.key}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(o.key)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              fontFamily: font.body,
+              fontSize: 13.5,
+              fontWeight: 500,
+              padding: '8px 14px',
+              borderRadius: 999,
+              cursor: 'pointer',
+              border: `1px solid ${active ? color.ink : color.line}`,
+              background: active ? color.ink : color.cardWhite,
+              color: active ? color.paper : color.mutedInk,
+              transition: 'background 0.12s, color 0.12s, border-color 0.12s',
+            }}
+          >
+            {o.label}
+            <span
+              style={{
+                fontFamily: font.mono,
+                fontSize: 11,
+                color: active ? color.paper : color.softInk,
+                opacity: active ? 0.85 : 1,
+              }}
+            >
+              {o.count}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -117,14 +243,37 @@ function PublicCard({ item }: { item: PublicItem }) {
   return (
     <div
       style={{
+        position: 'relative',
         border: `1px solid ${color.line}`,
         borderRadius: 14,
         overflow: 'hidden',
         background: color.cardWhite,
         display: 'flex',
         flexDirection: 'column',
+        // Reserved items recede so the still-available ones stand out.
+        opacity: reserved ? 0.7 : 1,
       }}
     >
+      {reserved && (
+        <span
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            zIndex: 2,
+            fontFamily: font.mono,
+            fontSize: 10.5,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            color: color.paper,
+            background: color.ink,
+            borderRadius: 999,
+            padding: '4px 9px',
+          }}
+        >
+          LEFOGLALVA
+        </span>
+      )}
       <button
         type="button"
         onClick={() => photoUrl && setOpen(true)}
@@ -140,27 +289,7 @@ function PublicCard({ item }: { item: PublicItem }) {
           textAlign: 'inherit',
         }}
       >
-        <PhotoPlaceholder caption={item.cover} photoUrl={photoUrl}>
-        {reserved && (
-          <span
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: 'rgba(22,32,46,0.82)',
-              color: color.paper,
-              fontFamily: font.mono,
-              fontSize: 11,
-              letterSpacing: '0.08em',
-              textAlign: 'center',
-              padding: 5,
-            }}
-          >
-            LEFOGLALVA
-          </span>
-        )}
-        </PhotoPlaceholder>
+        <PhotoPlaceholder caption={item.cover} photoUrl={photoUrl} />
       </button>
       {open && photoUrl && <Lightbox url={photoUrl} onClose={() => setOpen(false)} />}
       <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
