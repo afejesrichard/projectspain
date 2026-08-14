@@ -128,6 +128,16 @@ export function IconCamera({ size = 22, style, strokeWidth = 1.6 }: IconProps) {
   )
 }
 
+export function IconImage({ size = 22, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <rect x="3" y="4.5" width="18" height="15" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.6" />
+      <path d="m4 17 4.5-4.5a1.5 1.5 0 0 1 2.1 0L16 18M14 15l1.5-1.5a1.5 1.5 0 0 1 2.1 0L20 16" />
+    </svg>
+  )
+}
+
 export function IconCheckSquare({ size = 18, style, strokeWidth = 1.6, checked = false }: IconProps & { checked?: boolean }) {
   return (
     <svg {...svgProps(size, strokeWidth, style)}>
