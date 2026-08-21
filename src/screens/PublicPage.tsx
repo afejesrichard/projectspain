@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { color, font } from '../theme'
-import { fetchPublicItems, type PublicItem } from '../data/repo'
+import { fetchPublicItemsLight, fetchPublicItemPhotos, type PublicItem } from '../data/repo'
 import { DispositionTag } from '../components/DispositionTag'
 import { Lightbox } from '../components/Lightbox'
 import { PhotoPlaceholder, Skeleton } from '../components/primitives'
@@ -15,8 +15,25 @@ export function PublicPage() {
   useEffect(() => {
     document.title = 'Project Spain — jó gazdát keresünk'
     let alive = true
-    fetchPublicItems()
-      .then((data) => alive && setItems(data))
+    // Text and layout first, then hydrate photos, so the catalogue appears
+    // almost instantly instead of waiting on inline base64 images.
+    fetchPublicItemsLight()
+      .then((data) => {
+        if (!alive) return
+        setItems(data)
+        fetchPublicItemPhotos()
+          .then((photosById) => {
+            if (!alive) return
+            setItems((prev) =>
+              prev
+                ? prev.map((i) => (photosById.has(i.id) ? { ...i, photos: photosById.get(i.id)! } : i))
+                : prev,
+            )
+          })
+          .catch(() => {
+            /* keep placeholders */
+          })
+      })
       .catch(() => alive && setFailed(true))
     return () => {
       alive = false
@@ -242,6 +259,7 @@ function PublicCard({ item }: { item: PublicItem }) {
   const [open, setOpen] = useState(false)
   return (
     <div
+      className="mf-card-cv"
       style={{
         position: 'relative',
         border: `1px solid ${color.line}`,

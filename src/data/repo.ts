@@ -148,6 +148,13 @@ export async function hasSession(): Promise<boolean> {
 // --- Editor reads ----------------------------------------------------------
 // Newest first, but seed items (identical timestamps) fall back to id ascending
 // so the original manifest order (1..10) is preserved.
+
+// Every column EXCEPT `photos`. The photos array is base64 data URLs (up to a
+// few hundred KB each), so pulling it inline makes the initial manifest fetch
+// many times heavier than it needs to be. We fetch it separately and hydrate.
+const ITEM_LIGHT_COLUMNS =
+  'id,name,cover,disposition,price_huf,status,published,awaiting,stamped,proposed_by,private_note,description,box_id,created_at'
+
 export async function fetchItems(): Promise<Item[]> {
   const { data, error } = await supabase
     .from('items')
@@ -156,6 +163,29 @@ export async function fetchItems(): Promise<Item[]> {
     .order('id', { ascending: true })
   if (error) throw error
   return (data as ItemRow[]).map(rowToItem)
+}
+
+// Fast path: the whole manifest minus the heavy inline photos, so the
+// text-first UI (names, tags, prices) can paint immediately.
+export async function fetchItemsLight(): Promise<Item[]> {
+  const { data, error } = await supabase
+    .from('items')
+    .select(ITEM_LIGHT_COLUMNS)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
+  if (error) throw error
+  return (data as Omit<ItemRow, 'photos'>[]).map((r) => rowToItem({ ...r, photos: [] } as ItemRow))
+}
+
+// Second pass: just the photos, keyed by id, to merge in once the grid is up.
+export async function fetchItemPhotos(): Promise<Map<number, string[]>> {
+  const { data, error } = await supabase.from('items').select('id,photos')
+  if (error) throw error
+  const map = new Map<number, string[]>()
+  for (const r of data as { id: number; photos: unknown }[]) {
+    map.set(r.id, Array.isArray(r.photos) ? (r.photos as string[]) : [])
+  }
+  return map
 }
 
 export async function fetchTasks(): Promise<Task[]> {
@@ -325,6 +355,28 @@ export async function fetchPublicItems(): Promise<PublicItem[]> {
     .order('id', { ascending: true })
   if (error) throw error
   return (data as PublicItem[]).map((r) => ({ ...r, photos: Array.isArray(r.photos) ? r.photos : [] }))
+}
+
+// Two-pass load for the shareable page too: text and layout first, the heavy
+// base64 photos after, so strangers see the catalogue almost instantly.
+export async function fetchPublicItemsLight(): Promise<PublicItem[]> {
+  const { data, error } = await supabase
+    .from('public_items')
+    .select('id,name,cover,disposition,price_huf,status,description')
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
+  if (error) throw error
+  return (data as Omit<PublicItem, 'photos'>[]).map((r) => ({ ...r, photos: [] }))
+}
+
+export async function fetchPublicItemPhotos(): Promise<Map<number, string[]>> {
+  const { data, error } = await supabase.from('public_items').select('id,photos')
+  if (error) throw error
+  const map = new Map<number, string[]>()
+  for (const r of data as { id: number; photos: unknown }[]) {
+    map.set(r.id, Array.isArray(r.photos) ? (r.photos as string[]) : [])
+  }
+  return map
 }
 
 export { rowToTask }

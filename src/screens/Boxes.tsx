@@ -146,6 +146,7 @@ function BoxCard({ box, itemCount, onOpen }: { box: Box; itemCount: number; onOp
   return (
     <button
       onClick={onOpen}
+      className="mf-card-cv"
       style={{
         textAlign: 'left',
         // Sealed boxes are "stamped": solid border. Open boxes stay dashed.

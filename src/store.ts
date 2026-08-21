@@ -183,13 +183,31 @@ export const useStore = create<ManifestState>((set, get) => ({
   loadData: async () => {
     set({ loading: true })
     try {
+      // Phase 1: the whole manifest MINUS inline photos, so names, tags and
+      // prices paint immediately instead of blocking on megabytes of base64.
       const [items, tasks, notes, boxes] = await Promise.all([
-        repo.fetchItems(),
+        repo.fetchItemsLight(),
         repo.fetchTasks(),
         repo.fetchNotes(),
         repo.fetchBoxes(),
       ])
       set({ items, tasks, notes, boxes, loading: false })
+
+      // Phase 2: hydrate photos in the background and merge by id. Cards show
+      // their placeholder until their thumbnail arrives; if this fails the app
+      // stays fully usable, just without pictures.
+      repo
+        .fetchItemPhotos()
+        .then((photosById) => {
+          set((s) => ({
+            items: s.items.map((it) =>
+              photosById.has(it.id) ? { ...it, photos: photosById.get(it.id)! } : it,
+            ),
+          }))
+        })
+        .catch(() => {
+          /* thumbnails simply stay as placeholders */
+        })
     } catch {
       set({ loading: false })
     }

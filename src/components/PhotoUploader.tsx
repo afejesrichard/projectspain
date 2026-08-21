@@ -138,6 +138,7 @@ export function PhotoUploader({
               <img
                 src={p}
                 alt={`fotó ${i + 1}`}
+                decoding="async"
                 onClick={onPhotoClick ? () => onPhotoClick(p) : undefined}
                 style={{
                   width: 92,

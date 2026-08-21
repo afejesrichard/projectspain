@@ -1,18 +1,24 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useStore } from './store'
 import { color, font } from './theme'
-import { AppShell } from './components/AppShell'
-import { Login } from './screens/Login'
-import { Welcome } from './screens/Welcome'
-import { Dashboard } from './screens/Dashboard'
-import { Inventory } from './screens/Inventory'
-import { ItemDetail } from './screens/ItemDetail'
-import { Todos } from './screens/Todos'
-import { Boxes } from './screens/Boxes'
-import { BoxDetail } from './screens/BoxDetail'
-import { ApprovalQueue } from './screens/ApprovalQueue'
-import { PublicPage } from './screens/PublicPage'
+
+// Split every screen into its own chunk. The biggest win is the public
+// catalogue: strangers opening the shared link no longer download the entire
+// editor app, and the editor's own first paint only loads what each route needs.
+const AppShell = lazy(() => import('./components/AppShell').then((m) => ({ default: m.AppShell })))
+const Login = lazy(() => import('./screens/Login').then((m) => ({ default: m.Login })))
+const Welcome = lazy(() => import('./screens/Welcome').then((m) => ({ default: m.Welcome })))
+const Dashboard = lazy(() => import('./screens/Dashboard').then((m) => ({ default: m.Dashboard })))
+const Inventory = lazy(() => import('./screens/Inventory').then((m) => ({ default: m.Inventory })))
+const ItemDetail = lazy(() => import('./screens/ItemDetail').then((m) => ({ default: m.ItemDetail })))
+const Todos = lazy(() => import('./screens/Todos').then((m) => ({ default: m.Todos })))
+const Boxes = lazy(() => import('./screens/Boxes').then((m) => ({ default: m.Boxes })))
+const BoxDetail = lazy(() => import('./screens/BoxDetail').then((m) => ({ default: m.BoxDetail })))
+const ApprovalQueue = lazy(() =>
+  import('./screens/ApprovalQueue').then((m) => ({ default: m.ApprovalQueue })),
+)
+const PublicPage = lazy(() => import('./screens/PublicPage').then((m) => ({ default: m.PublicPage })))
 
 function Splash() {
   return (
@@ -53,31 +59,33 @@ export default function App() {
   }, [init])
 
   return (
-    <Routes>
-      {/* Public catalogue — no login, the shareable page. */}
-      <Route path="/nyilvanos" element={<PublicPage />} />
+    <Suspense fallback={<Splash />}>
+      <Routes>
+        {/* Public catalogue — no login, the shareable page. */}
+        <Route path="/nyilvanos" element={<PublicPage />} />
 
-      {/* Login. */}
-      <Route path="/belepes" element={<Login />} />
+        {/* Login. */}
+        <Route path="/belepes" element={<Login />} />
 
-      {/* Editor app. */}
-      <Route
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/leltar" element={<Inventory />} />
-        <Route path="/leltar/:id" element={<ItemDetail />} />
-        <Route path="/feladatok" element={<Todos />} />
-        <Route path="/dobozok" element={<Boxes />} />
-        <Route path="/dobozok/:id" element={<BoxDetail />} />
-        <Route path="/jovahagyas" element={<ApprovalQueue />} />
-      </Route>
+        {/* Editor app. */}
+        <Route
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/leltar" element={<Inventory />} />
+          <Route path="/leltar/:id" element={<ItemDetail />} />
+          <Route path="/feladatok" element={<Todos />} />
+          <Route path="/dobozok" element={<Boxes />} />
+          <Route path="/dobozok/:id" element={<BoxDetail />} />
+          <Route path="/jovahagyas" element={<ApprovalQueue />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
