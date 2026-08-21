@@ -9,7 +9,7 @@ export function ItemCard({ item, onOpen, flash }: { item: Item; onOpen: () => vo
   return (
     <button
       onClick={onOpen}
-      className={flash ? 'mf-flash' : undefined}
+      className={flash ? 'mf-flash mf-card-cv' : 'mf-card-cv'}
       style={{
         textAlign: 'left',
         border: `1px solid ${color.line}`,

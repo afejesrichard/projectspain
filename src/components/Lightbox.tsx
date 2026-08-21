@@ -38,6 +38,7 @@ export function Lightbox({ url, onClose }: { url: string; onClose: () => void })
       <img
         src={url}
         alt=""
+        decoding="async"
         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
       />
       <button

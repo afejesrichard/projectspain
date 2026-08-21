@@ -127,6 +127,15 @@ select {
   border-radius: 6px;
 }
 
+/* Long grids of photo cards: let the browser skip layout, paint and image
+   decode for cards that are off-screen. `contain-intrinsic-size` reserves a
+   plausible height so the scrollbar stays stable. Progressive enhancement —
+   browsers without support simply render everything as before. */
+.mf-card-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
 /* Hide scrollbars on the horizontal filter bar but keep it scrollable. */
 .mf-scroll-x {
   overflow-x: auto;
