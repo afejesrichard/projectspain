@@ -3,16 +3,11 @@ import { color, font, hexA, DISPOSITION_ORDER, DISPOSITIONS, type Disposition } 
 import { useStore } from '../store'
 import { useIsDesktop } from '../hooks/useMedia'
 import { PhotoUploader } from './PhotoUploader'
-import { personName, otherPerson } from '../lib/people'
 import type { ItemStatus } from '../types'
-
-const REMOVAL: Disposition[] = ['sell', 'give', 'throw']
 
 export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const isDesktop = useIsDesktop()
   const addItem = useStore((s) => s.addItem)
-  const actingAs = useStore((s) => s.actingAs)
-  const other = personName(otherPerson(actingAs))
 
   const [name, setName] = useState('')
   const [disposition, setDisposition] = useState<Disposition>('keep')
@@ -38,7 +33,6 @@ export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => 
   if (!open) return null
 
   const publishable = disposition === 'sell' || disposition === 'give'
-  const isRemoval = REMOVAL.includes(disposition)
   const canSave = name.trim().length > 0 && !saving
 
   const save = async () => {
@@ -209,12 +203,6 @@ export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => 
                 <div style={{ fontSize: 12.5, color: color.softInk }}>A link birtokában bárki láthatja.</div>
               </div>
               <Toggle on={published} onClick={() => setPublished((v) => !v)} />
-            </div>
-          )}
-
-          {isRemoval && (
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: color.softInk, lineHeight: 1.5 }}>
-              Ez eltávolítás — {other} jóváhagyására vár, mielőtt véglegessé válik.
             </div>
           )}
 

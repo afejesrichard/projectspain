@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { color, font, hexA, DISPOSITION_ORDER, DISPOSITIONS } from '../theme'
 import { useStore } from '../store'
 import { DispositionTag } from '../components/DispositionTag'
-import { ApprovalStrip } from '../components/Approval'
 import { Toggle } from '../components/AddItemSheet'
 import { PhotoPlaceholder, Chip } from '../components/primitives'
 import { Lightbox } from '../components/Lightbox'
@@ -151,10 +150,8 @@ export function ItemDetail() {
           }}
           onFocus={(e) => (e.target.style.borderColor = color.line)}
         />
-        <DispositionTag disposition={item.disposition} priceHUF={item.priceHUF} awaiting={item.awaiting} stamped={item.stamped} size="lg" />
+        <DispositionTag disposition={item.disposition} priceHUF={item.priceHUF} size="lg" />
       </div>
-
-      <ApprovalStrip item={item} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         {/* disposition */}

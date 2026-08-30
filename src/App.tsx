@@ -12,15 +12,11 @@ const Welcome = lazy(() => import('./screens/Welcome').then((m) => ({ default: m
 const Dashboard = lazy(() => import('./screens/Dashboard').then((m) => ({ default: m.Dashboard })))
 const Inventory = lazy(() => import('./screens/Inventory').then((m) => ({ default: m.Inventory })))
 const ItemDetail = lazy(() => import('./screens/ItemDetail').then((m) => ({ default: m.ItemDetail })))
-const Todos = lazy(() => import('./screens/Todos').then((m) => ({ default: m.Todos })))
 const Boxes = lazy(() => import('./screens/Boxes').then((m) => ({ default: m.Boxes })))
 const BoxDetail = lazy(() => import('./screens/BoxDetail').then((m) => ({ default: m.BoxDetail })))
 const Expenses = lazy(() => import('./screens/Expenses').then((m) => ({ default: m.Expenses })))
 const ExpenseDetail = lazy(() =>
   import('./screens/ExpenseDetail').then((m) => ({ default: m.ExpenseDetail })),
-)
-const ApprovalQueue = lazy(() =>
-  import('./screens/ApprovalQueue').then((m) => ({ default: m.ApprovalQueue })),
 )
 const PublicPage = lazy(() => import('./screens/PublicPage').then((m) => ({ default: m.PublicPage })))
 
@@ -82,12 +78,10 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/leltar" element={<Inventory />} />
           <Route path="/leltar/:id" element={<ItemDetail />} />
-          <Route path="/feladatok" element={<Todos />} />
           <Route path="/dobozok" element={<Boxes />} />
           <Route path="/dobozok/:id" element={<BoxDetail />} />
           <Route path="/kiadasok" element={<Expenses />} />
           <Route path="/kiadasok/:id" element={<ExpenseDetail />} />
-          <Route path="/jovahagyas" element={<ApprovalQueue />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -88,13 +88,7 @@ export function ItemCard({ item, onOpen, flash }: { item: Item; onOpen: () => vo
       </PhotoPlaceholder>
       <div style={{ padding: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ fontSize: 14.5, fontWeight: 500, lineHeight: 1.3 }}>{item.name}</div>
-        <DispositionTag
-          disposition={item.disposition}
-          priceHUF={item.priceHUF}
-          awaiting={item.awaiting}
-          stamped={item.stamped}
-          size="sm"
-        />
+        <DispositionTag disposition={item.disposition} priceHUF={item.priceHUF} size="sm" />
       </div>
     </button>
   )

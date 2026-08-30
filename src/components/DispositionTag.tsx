@@ -1,14 +1,10 @@
-import { DISPOSITIONS, color, hexA, fmtHUF, font, type Disposition } from '../theme'
+import { DISPOSITIONS, color, fmtHUF, font, type Disposition } from '../theme'
 
 type Size = 'sm' | 'md' | 'lg'
 
 interface Props {
   disposition: Disposition
   priceHUF?: number | null
-  awaiting?: boolean
-  stamped?: boolean
-  /** Public/read-only never shows the unstamped (pending) state. */
-  readOnly?: boolean
   size?: Size
   style?: React.CSSProperties
 }
@@ -20,33 +16,23 @@ const SCALE: Record<Size, { fs: number; padY: number; padR: number; padL: number
 }
 
 // The signature luggage/shipping tag. Learn the colour language once:
-// blue stays, green sells, amber gifts, brick goes. An unsigned removal reads
-// as unstamped (dashed, muted); once approved it stamps solid.
-export function DispositionTag({
-  disposition,
-  priceHUF,
-  awaiting = false,
-  stamped = true,
-  readOnly = false,
-  size = 'sm',
-  style,
-}: Props) {
+// blue stays, green sells, amber gifts, brick goes.
+export function DispositionTag({ disposition, priceHUF, size = 'sm', style }: Props) {
   const d = DISPOSITIONS[disposition]
   const s = SCALE[size]
-  const pending = !readOnly && awaiting && !stamped
 
   // Only sell items carry a price token; the give tag word already says it's free.
   let price: string | null = null
   if (disposition === 'sell') price = fmtHUF(priceHUF)
 
-  const bg = pending ? hexA(d.color, 0.08) : d.color
-  const fg = pending ? d.color : d.fg
-  const border = pending ? `1.5px dashed ${d.color}` : `1px solid ${d.color}`
+  const bg = d.color
+  const fg = d.fg
+  const border = `1px solid ${d.color}`
 
   return (
     <span
       role="img"
-      aria-label={`${d.label}${price ? ', ' + price : ''}${pending ? ', jóváhagyásra vár' : ''}`}
+      aria-label={`${d.label}${price ? ', ' + price : ''}`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -82,9 +68,6 @@ export function DispositionTag({
       />
       <span>{d.word}</span>
       {price && <span style={{ opacity: 0.92 }}>{price}</span>}
-      {pending && (
-        <span style={{ opacity: 0.72, fontWeight: 400, letterSpacing: 0 }}>· függőben</span>
-      )}
     </span>
   )
 }

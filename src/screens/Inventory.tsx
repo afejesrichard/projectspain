@@ -13,7 +13,6 @@ const FILTERS: [string, string][] = [
   ['Eladó', 'sell'],
   ['Ingyen elvihető', 'give'],
   ['Kidob', 'throw'],
-  ['Jóváhagyásra vár', 'awaiting'],
   ['Publikus', 'published'],
 ]
 
@@ -40,7 +39,6 @@ export function Inventory() {
     return items.filter((it) => {
       if (q && !it.name.toLowerCase().includes(q)) return false
       if (filter === 'all') return true
-      if (filter === 'awaiting') return it.awaiting && !it.stamped
       if (filter === 'published') return it.published
       return it.disposition === filter
     })
