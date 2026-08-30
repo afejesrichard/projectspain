@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Spain expenses interchange format, version 1
+  One file = one <expenses> container holding 1..n <receipt> elements.
+  Same shape for upload (single receipt) and export (many receipts).
+  Amounts: decimal, dot separator, two places, no currency symbol. Currency set on <expenses>.
+  Dates: ISO 8601 with UTC offset.
+  Element reference: expenses-format.md
+-->
+<expenses version="1" currency="EUR" generated="2026-08-30" generator="claude">
+
+  <receipt id="20260830-lidl-01" source="photo" confidence="high">
+    <merchant chain="lidl">
+      <name>Lidl</name>
+      <legal-name>LIDL SUPERMERCADOS S.A.U.</legal-name>
+      <nif>A60195278</nif>
+      <address>
+        <street>C/ Pujades, 15-17</street>
+        <postcode>08018</postcode>
+        <city>Barcelona</city>
+      </address>
+    </merchant>
+
+    <datetime source="printed">2026-08-30T18:01:53+02:00</datetime>
+    <reference type="receipt-number">034778670</reference>
+    <reference type="sequence">00000002</reference>
+    <payment method="card" card="Visa Debit" last4="5444" detail="contactless"/>
+    <loyalty program="lidl-plus" used="true" saving="0.23"/>
+
+    <items>
+      <item n="1" category="food" sub="canned" recurrence="recurring" vat="B">
+        <label lang="ca">MUSCLOS EN ESCABETX</label>
+        <name lang="en">Mussels in escabeche</name>
+        <qty>1</qty>
+        <unit-price>2.29</unit-price>
+        <gross>2.29</gross>
+        <discounts>
+          <discount type="price-cut">0.23</discount>
+          <discount type="lidl-plus">0.23</discount>
+        </discounts>
+        <net>1.83</net>
+      </item>
+      <item n="2" category="household" sub="cleaning" recurrence="recurring" vat="C">
+        <label lang="ca">RENTAPLATS</label>
+        <name lang="en">Dishwasher detergent</name>
+        <qty>1</qty>
+        <unit-price>6.99</unit-price>
+        <gross>6.99</gross>
+        <net>6.99</net>
+      </item>
+      <item n="3" category="household" sub="paper" recurrence="recurring" vat="C">
+        <label lang="ca">TOVALLONS 2 CAPES</label>
+        <name lang="en">Napkins, 2-ply</name>
+        <qty>1</qty>
+        <unit-price>1.55</unit-price>
+        <gross>1.55</gross>
+        <net>1.55</net>
+      </item>
+      <item n="4" category="food" sub="dairy" recurrence="recurring" vat="A">
+        <label lang="ca">LLET SEMIDESNATADA</label>
+        <name lang="en">Semi-skimmed milk</name>
+        <qty>2</qty>
+        <unit-price>0.84</unit-price>
+        <gross>1.68</gross>
+        <net>1.68</net>
+      </item>
+      <item n="5" category="food" sub="sweets" recurrence="recurring" vat="B">
+        <label lang="ca">LLAMINADURES MIX</label>
+        <name lang="en">Sweets mix</name>
+        <qty>1</qty>
+        <unit-price>1.00</unit-price>
+        <gross>1.00</gross>
+        <net>1.00</net>
+      </item>
+      <item n="6" category="home-setup" sub="small-appliance" recurrence="one-off" vat="C">
+        <label lang="ca">BULLIDOR AIG.-0526010</label>
+        <name lang="en">Electric kettle</name>
+        <qty>1</qty>
+        <unit-price>14.99</unit-price>
+        <gross>14.99</gross>
+        <net>14.99</net>
+      </item>
+      <item n="7" category="food" sub="canned" recurrence="recurring" vat="B">
+        <label lang="ca">TONYINA OLI GIRA-SOL</label>
+        <name lang="en">Tuna in sunflower oil</name>
+        <qty>1</qty>
+        <unit-price>3.39</unit-price>
+        <gross>3.39</gross>
+        <net>3.39</net>
+      </item>
+      <item n="8" category="food" sub="dairy" recurrence="recurring" vat="A">
+        <label lang="ca">MOZZARELLA TALLS</label>
+        <name lang="en">Sliced mozzarella</name>
+        <qty>1</qty>
+        <unit-price>1.69</unit-price>
+        <gross>1.69</gross>
+        <net>1.69</net>
+      </item>
+      <item n="9" category="food" sub="dairy" recurrence="recurring" vat="A">
+        <label lang="ca">FORMATGE FRESC CABRA</label>
+        <name lang="en">Fresh goat cheese</name>
+        <qty>1</qty>
+        <unit-price>2.85</unit-price>
+        <gross>2.85</gross>
+        <net>2.85</net>
+      </item>
+      <item n="10" category="food" sub="charcuterie" recurrence="recurring" vat="B">
+        <label lang="ca">CASA TARRADELLAS FU.</label>
+        <name lang="en">Fuet (cured sausage)</name>
+        <brand>Casa Tarradellas</brand>
+        <qty>1</qty>
+        <unit-price>2.45</unit-price>
+        <gross>2.45</gross>
+        <net>2.45</net>
+      </item>
+      <item n="11" category="food" sub="bakery" recurrence="recurring" vat="A">
+        <label lang="ca">PANET BLANC</label>
+        <name lang="en">White bread roll</name>
+        <qty>1</qty>
+        <unit-price>1.09</unit-price>
+        <gross>1.09</gross>
+        <discounts>
+          <discount type="price-cut">0.10</discount>
+        </discounts>
+        <net>0.99</net>
+      </item>
+      <item n="12" category="alcohol" sub="beer" recurrence="recurring" vat="C">
+        <label lang="ca">CERVESA</label>
+        <name lang="en">Beer</name>
+        <qty>2</qty>
+        <unit-price>0.91</unit-price>
+        <gross>1.82</gross>
+        <net>1.82</net>
+      </item>
+    </items>
+
+    <totals>
+      <gross>41.79</gross>
+      <discounts>0.56</discounts>
+      <total>41.23</total>
+      <paid>41.23</paid>
+      <!-- Per-class figures as printed in the IVA table: base = P.N., tax = IVA, element value = PVP -->
+      <by-vat source="printed">
+        <class code="A" rate="0.04" base="6.93" tax="0.28">7.21</class>
+        <class code="B" rate="0.10" base="7.88" tax="0.79">8.67</class>
+        <class code="C" rate="0.21" base="20.95" tax="4.40">25.35</class>
+      </by-vat>
+      <reconciliation status="ok">Sum of item net amounts (41.23) equals printed total. Item VAT classes sum to the printed per-class PVP figures.</reconciliation>
+    </totals>
+
+    <attachments>
+      <photo file="20260830_1915047238533268302720978.jpg"/>
+    </attachments>
+    <notes>First grocery shop after arriving in Barcelona.</notes>
+  </receipt>
+
+</expenses>
