@@ -314,7 +314,7 @@ function PublicCard({ item }: { item: PublicItem }) {
         <div style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.3 }}>{item.name}</div>
         {item.description && <div style={{ fontSize: 13.5, color: color.mutedInk, lineHeight: 1.4 }}>{item.description}</div>}
         <div style={{ marginTop: 'auto', paddingTop: 4 }}>
-          <DispositionTag disposition={item.disposition} priceHUF={item.price_huf} readOnly size="md" />
+          <DispositionTag disposition={item.disposition} priceHUF={item.price_huf} size="md" />
         </div>
       </div>
     </div>

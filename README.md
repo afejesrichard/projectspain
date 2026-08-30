@@ -23,8 +23,9 @@ meaning across the whole app:
 | `ELAJÁNDÉK` | amber `#C98A2B` | Give away |
 | `KIDOB` | brick `#9A5B4E` | Throw away |
 
-Keep tags are always solid. Sell / Give / Throw are **removals**: they start
-*unstamped* (dashed, muted) and only stamp solid once the other person signs off.
+Every tag is stamped solid the moment it's chosen — dispositions apply
+immediately. (The earlier two-person sign-off flow and the to-do board were
+sunset; their database tables remain but the app no longer uses them.)
 
 ## Stack
 
@@ -42,9 +43,11 @@ Keep tags are always solid. Sell / Give / Throw are **removals**: they start
 | `#/belepes` | Login (single shared password) |
 | `#/` | Dashboard — the operations board |
 | `#/leltar` | Inventory grid (filters + search) |
-| `#/leltar/:id` | Item detail (in-place editing + approval strip) |
-| `#/feladatok` | To-do board, grouped by phase |
-| `#/jovahagyas` | Needs-approval queue |
+| `#/leltar/:id` | Item detail (in-place editing) |
+| `#/dobozok` | Numbered moving boxes with content photos |
+| `#/dobozok/:id` | Box detail |
+| `#/kiadasok` | Expenses — receipt XML import, list, export (see `docs/expenses-format.md`) |
+| `#/kiadasok/:id` | Receipt detail |
 | `#/nyilvanos` | **Public** read-only catalogue (no login) |
 
 Routing is hash-based so the SPA works on GitHub Pages (which has no server
@@ -59,8 +62,8 @@ however they already know you.
 The public page is the screen strangers judge them by, so private data must never
 leak there. This is enforced at the database, not just the UI:
 
-- `items` and `tasks` are **RLS-protected**. Anonymous visitors get **nothing**
-  from the base tables.
+- `items`, `boxes` and `receipts` are **RLS-protected**. Anonymous visitors get
+  **nothing** from the base tables.
 - The editor **authenticates** (one shared account) to read/write the base tables.
 - The public catalogue is a **view** (`public_items`) that exposes only safe
   columns — no `private_note`, no `proposed_by`, no approval state — and only

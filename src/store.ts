@@ -1,11 +1,11 @@
 import { create } from 'zustand'
-import type { Item, Task, ItemNote, Box, Person, ItemStatus, Assignee, Phase, Receipt } from './types'
+import type { Item, ItemNote, Box, Person, ItemStatus, Receipt } from './types'
 import type { Disposition } from './theme'
 import type { ReceiptRecord } from './lib/expenses'
 import { supabase } from './lib/supabase'
 import * as repo from './data/repo'
-import { rowToItem, rowToTask, rowToNote, rowToBox, rowToReceipt, rowPatchToItem, rowPatchToBox } from './data/repo'
-import type { ItemRow, TaskRow, NoteRow, BoxRow, ReceiptRow } from './data/repo'
+import { rowToItem, rowToNote, rowToBox, rowToReceipt, rowPatchToItem, rowPatchToBox } from './data/repo'
+import type { ItemRow, NoteRow, BoxRow, ReceiptRow } from './data/repo'
 
 const ACTING_KEY = 'manifest-acting-as'
 
@@ -23,7 +23,6 @@ interface ManifestState {
   loading: boolean // editor data loading
 
   items: Item[]
-  tasks: Task[]
   notes: ItemNote[]
   boxes: Box[]
   receipts: Receipt[]
@@ -40,20 +39,12 @@ interface ManifestState {
   clearFlash: () => void
 
   // items
-  addItem: (draft: Omit<Item, 'id' | 'awaiting' | 'stamped' | 'proposedBy'>) => Promise<number | null>
+  addItem: (draft: Omit<Item, 'id'>) => Promise<number | null>
   setDisposition: (id: number, d: Disposition) => Promise<void>
   setStatus: (id: number, s: ItemStatus) => Promise<void>
   updateItem: (id: number, patch: Partial<Item>) => Promise<void>
   togglePublished: (id: number) => Promise<void>
-  approve: (id: number) => Promise<void>
-  sendBack: (id: number) => Promise<void>
   removeItem: (id: number) => Promise<void>
-
-  // tasks
-  addTask: (title: string, phase: Phase, assignee: Assignee) => Promise<void>
-  toggleTask: (id: number) => Promise<void>
-  updateTask: (id: number, patch: Partial<Task>) => Promise<void>
-  removeTask: (id: number) => Promise<void>
 
   // notes
   addNote: (itemId: number, body: string) => Promise<void>
@@ -81,7 +72,6 @@ export const useStore = create<ManifestState>((set, get) => ({
   loading: false,
 
   items: [],
-  tasks: [],
   notes: [],
   boxes: [],
   receipts: [],
@@ -100,7 +90,7 @@ export const useStore = create<ManifestState>((set, get) => ({
       const wasAuthed = get().authed
       set({ authed })
       if (authed && !wasAuthed) get().loadData()
-      if (!authed) set({ items: [], tasks: [], notes: [], boxes: [], receipts: [] })
+      if (!authed) set({ items: [], notes: [], boxes: [], receipts: [] })
     })
 
     if (!realtimeBound) {
@@ -126,20 +116,6 @@ export const useStore = create<ManifestState>((set, get) => ({
             return {
               items: s.items.map((i) => (i.id === raw.id ? { ...i, ...patch } : i)),
               flashId: raw.id,
-            }
-          })
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-          set((s) => {
-            if (payload.eventType === 'DELETE') {
-              const oldId = (payload.old as { id?: number }).id
-              return { tasks: s.tasks.filter((t) => t.id !== oldId) }
-            }
-            const row = rowToTask(payload.new as unknown as TaskRow)
-            const exists = s.tasks.some((t) => t.id === row.id)
-            return {
-              tasks: exists ? s.tasks.map((t) => (t.id === row.id ? row : t)) : [...s.tasks, row],
-              flashId: row.id,
             }
           })
         })
@@ -206,14 +182,13 @@ export const useStore = create<ManifestState>((set, get) => ({
     try {
       // Phase 1: the whole manifest MINUS inline photos, so names, tags and
       // prices paint immediately instead of blocking on megabytes of base64.
-      const [items, tasks, notes, boxes, receipts] = await Promise.all([
+      const [items, notes, boxes, receipts] = await Promise.all([
         repo.fetchItemsLight(),
-        repo.fetchTasks(),
         repo.fetchNotes(),
         repo.fetchBoxes(),
         repo.fetchReceipts(),
       ])
-      set({ items, tasks, notes, boxes, receipts, loading: false })
+      set({ items, notes, boxes, receipts, loading: false })
 
       // Phase 2: hydrate photos in the background and merge by id. Cards show
       // their placeholder until their thumbnail arrives; if this fails the app
@@ -246,7 +221,7 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   logout: async () => {
     await repo.signOut()
-    set({ authed: false, items: [], tasks: [], notes: [], boxes: [], receipts: [] })
+    set({ authed: false, items: [], notes: [], boxes: [], receipts: [] })
   },
 
   setActingAs: (p) => {
@@ -261,15 +236,8 @@ export const useStore = create<ManifestState>((set, get) => ({
   clearFlash: () => set({ flashId: null }),
 
   addItem: async (draft) => {
-    const isRemoval = draft.disposition !== 'keep'
-    const full: Omit<Item, 'id'> = {
-      ...draft,
-      awaiting: isRemoval,
-      stamped: !isRemoval,
-      proposedBy: isRemoval ? get().actingAs : null,
-    }
     try {
-      const created = await repo.insertItem(full)
+      const created = await repo.insertItem(draft)
       set((s) => ({ items: [created, ...s.items.filter((i) => i.id !== created.id)], flashId: created.id }))
       return created.id
     } catch {
@@ -280,17 +248,9 @@ export const useStore = create<ManifestState>((set, get) => ({
   setDisposition: async (id, d) => {
     const it = get().items.find((i) => i.id === id)
     if (!it) return
-    let patch: Partial<Item>
-    if (d === 'keep') {
-      patch = { disposition: d, stamped: true, awaiting: false, proposedBy: null }
-    } else {
-      const wasApprovedRemoval = it.stamped && !it.awaiting && it.disposition !== 'keep'
-      patch = wasApprovedRemoval
-        ? { disposition: d }
-        : { disposition: d, awaiting: true, stamped: false, proposedBy: get().actingAs }
-      // Something being sold / given / thrown away is not coming in a box.
-      if (it.boxId != null) patch.boxId = null
-    }
+    const patch: Partial<Item> = { disposition: d }
+    // Something being sold / given / thrown away is not coming in a box.
+    if (d !== 'keep' && it.boxId != null) patch.boxId = null
     await get().updateItem(id, patch)
   },
 
@@ -314,68 +274,11 @@ export const useStore = create<ManifestState>((set, get) => ({
     await get().updateItem(id, { published: !it.published })
   },
 
-  approve: async (id) => {
-    await get().updateItem(id, { stamped: true, awaiting: false })
-  },
-
-  sendBack: async (id) => {
-    const it = get().items.find((i) => i.id === id)
-    if (!it) return
-    await get().updateItem(id, {
-      awaiting: true,
-      stamped: false,
-      proposedBy: it.proposedBy === 'Richard' ? 'Dorka' : 'Richard',
-    })
-  },
-
   removeItem: async (id) => {
     // optimistic removal; realtime DELETE keeps the other editor in sync
     set((s) => ({ items: s.items.filter((it) => it.id !== id) }))
     try {
       await repo.deleteItem(id)
-    } catch {
-      get().loadData()
-    }
-  },
-
-  addTask: async (title, phase, assignee) => {
-    const t = title.trim()
-    if (!t) return
-    const draft: Omit<Task, 'id'> = {
-      title: t,
-      phase,
-      assignee,
-      due: null,
-      priority: 'normal',
-      done: false,
-    }
-    try {
-      const created = await repo.insertTask(draft)
-      set((s) => ({ tasks: [...s.tasks.filter((x) => x.id !== created.id), created], flashId: created.id }))
-    } catch {
-      /* ignore */
-    }
-  },
-
-  toggleTask: async (id) => {
-    const t = get().tasks.find((x) => x.id === id)
-    if (!t) return
-    await get().updateTask(id, { done: !t.done })
-  },
-
-  updateTask: async (id, patch) => {
-    set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)), flashId: id }))
-    try {
-      await repo.patchTask(id, patch)
-    } catch {
-      get().loadData()
-    }
-  },
-
-  removeTask: async (id) => {
-    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }))
-    try {
-      await repo.deleteTask(id)
     } catch {
       get().loadData()
     }

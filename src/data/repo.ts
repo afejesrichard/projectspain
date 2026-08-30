@@ -1,5 +1,5 @@
 import { supabase, EDITOR_EMAIL } from '../lib/supabase'
-import type { Item, Task, ItemNote, Box, Person, Phase, Assignee, Priority, ItemStatus, Receipt } from '../types'
+import type { Item, ItemNote, Box, Person, ItemStatus, Receipt } from '../types'
 import type { Disposition } from '../theme'
 import type { ReceiptRecord } from '../lib/expenses'
 
@@ -13,23 +13,9 @@ interface ItemRow {
   price_huf: number | null
   status: ItemStatus
   published: boolean
-  awaiting: boolean
-  stamped: boolean
-  proposed_by: Person | null
   private_note: string | null
   description: string | null
   box_id: number | null
-  created_at?: string
-}
-
-interface TaskRow {
-  id: number
-  title: string
-  phase: Phase
-  assignee: Assignee
-  due: string | null
-  priority: Priority
-  done: boolean
   created_at?: string
 }
 
@@ -56,9 +42,6 @@ export function rowToItem(r: ItemRow): Item {
     priceHUF: r.price_huf,
     status: r.status,
     published: r.published,
-    awaiting: r.awaiting,
-    stamped: r.stamped,
-    proposedBy: r.proposed_by,
     privateNote: r.private_note,
     description: r.description,
     boxId: r.box_id ?? null,
@@ -74,9 +57,6 @@ function itemToRow(it: Partial<Item>): Partial<ItemRow> {
   if (it.priceHUF !== undefined) row.price_huf = it.priceHUF
   if (it.status !== undefined) row.status = it.status
   if (it.published !== undefined) row.published = it.published
-  if (it.awaiting !== undefined) row.awaiting = it.awaiting
-  if (it.stamped !== undefined) row.stamped = it.stamped
-  if (it.proposedBy !== undefined) row.proposed_by = it.proposedBy
   if (it.privateNote !== undefined) row.private_note = it.privateNote
   if (it.description !== undefined) row.description = it.description
   if (it.boxId !== undefined) row.box_id = it.boxId
@@ -96,36 +76,10 @@ export function rowPatchToItem(raw: Partial<ItemRow>): Partial<Item> {
   if ('price_huf' in raw) p.priceHUF = raw.price_huf ?? null
   if ('status' in raw) p.status = raw.status as Item['status']
   if ('published' in raw) p.published = !!raw.published
-  if ('awaiting' in raw) p.awaiting = !!raw.awaiting
-  if ('stamped' in raw) p.stamped = !!raw.stamped
-  if ('proposed_by' in raw) p.proposedBy = raw.proposed_by ?? null
   if ('private_note' in raw) p.privateNote = raw.private_note ?? null
   if ('description' in raw) p.description = raw.description ?? null
   if ('box_id' in raw) p.boxId = raw.box_id ?? null
   return p
-}
-
-function rowToTask(r: TaskRow): Task {
-  return {
-    id: r.id,
-    title: r.title,
-    phase: r.phase,
-    assignee: r.assignee,
-    due: r.due,
-    priority: r.priority,
-    done: r.done,
-  }
-}
-
-function taskToRow(t: Partial<Task>): Partial<TaskRow> {
-  const row: Partial<TaskRow> = {}
-  if (t.title !== undefined) row.title = t.title
-  if (t.phase !== undefined) row.phase = t.phase
-  if (t.assignee !== undefined) row.assignee = t.assignee
-  if (t.due !== undefined) row.due = t.due
-  if (t.priority !== undefined) row.priority = t.priority
-  if (t.done !== undefined) row.done = t.done
-  return row
 }
 
 // --- Auth ------------------------------------------------------------------
@@ -154,7 +108,7 @@ export async function hasSession(): Promise<boolean> {
 // few hundred KB each), so pulling it inline makes the initial manifest fetch
 // many times heavier than it needs to be. We fetch it separately and hydrate.
 const ITEM_LIGHT_COLUMNS =
-  'id,name,cover,disposition,price_huf,status,published,awaiting,stamped,proposed_by,private_note,description,box_id,created_at'
+  'id,name,cover,disposition,price_huf,status,published,private_note,description,box_id,created_at'
 
 export async function fetchItems(): Promise<Item[]> {
   const { data, error } = await supabase
@@ -187,12 +141,6 @@ export async function fetchItemPhotos(): Promise<Map<number, string[]>> {
     map.set(r.id, Array.isArray(r.photos) ? (r.photos as string[]) : [])
   }
   return map
-}
-
-export async function fetchTasks(): Promise<Task[]> {
-  const { data, error } = await supabase.from('tasks').select('*').order('id', { ascending: true })
-  if (error) throw error
-  return (data as TaskRow[]).map(rowToTask)
 }
 
 // --- Editor writes ---------------------------------------------------------
@@ -326,26 +274,6 @@ export async function insertNote(itemId: number, author: Person, body: string): 
 }
 
 export type { NoteRow }
-
-export async function insertTask(draft: Omit<Task, 'id'>): Promise<Task> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert(taskToRow(draft))
-    .select('*')
-    .single()
-  if (error) throw error
-  return rowToTask(data as TaskRow)
-}
-
-export async function patchTask(id: number, patch: Partial<Task>): Promise<void> {
-  const { error } = await supabase.from('tasks').update(taskToRow(patch)).eq('id', id)
-  if (error) throw error
-}
-
-export async function deleteTask(id: number): Promise<void> {
-  const { error } = await supabase.from('tasks').delete().eq('id', id)
-  if (error) throw error
-}
 
 // --- Receipts (Kiadások) ----------------------------------------------------
 // Rows are immutable: insert and delete only, never update.
@@ -496,5 +424,4 @@ export async function fetchPublicItemPhotos(): Promise<Map<number, string[]>> {
   return map
 }
 
-export { rowToTask }
-export type { ItemRow, TaskRow }
+export type { ItemRow }

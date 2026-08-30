@@ -49,9 +49,6 @@ export const DISPOSITIONS: Record<
 
 export const DISPOSITION_ORDER: Disposition[] = ['keep', 'sell', 'give', 'throw']
 
-// Only Sell, Give away, and Throw away pass through the unstamped (approval) state.
-export const REMOVAL_DISPOSITIONS: Disposition[] = ['sell', 'give', 'throw']
-
 export function hexA(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16)
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`

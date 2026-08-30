@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { color, font } from '../theme'
 import { useStore } from '../store'
 import { useIsDesktop } from '../hooks/useMedia'
-import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare, IconPackage, IconReceipt } from './icons'
+import { IconGrid, IconBox, IconCopy, IconCheck, IconPackage, IconReceipt } from './icons'
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
@@ -101,50 +101,25 @@ function CopyLinkButton({ variant }: { variant: 'shell' | 'solid' }) {
   )
 }
 
-function CountBadge({ n, tone = 'amber' }: { n: number; tone?: 'amber' | 'small' }) {
-  if (!n) return null
-  return (
-    <span
-      style={{
-        marginLeft: tone === 'amber' ? 'auto' : undefined,
-        fontFamily: font.mono,
-        fontSize: tone === 'amber' ? 11 : 10,
-        fontWeight: 700,
-        background: color.give,
-        color: color.ink,
-        borderRadius: 20,
-        padding: tone === 'amber' ? '1px 8px' : '0 6px',
-      }}
-    >
-      {n}
-    </span>
-  )
-}
-
-type NavItem = { to: string; label: string; short?: string; icon: string; end: boolean; badge?: boolean }
+type NavItem = { to: string; label: string; short?: string; icon: string; end: boolean }
 
 const NAV: NavItem[] = [
   { to: '/', label: 'Áttekintés', short: 'Áttek.', icon: 'grid', end: true },
   { to: '/leltar', label: 'Leltár', icon: 'box', end: false },
-  { to: '/feladatok', label: 'Feladatok', short: 'Feladat', icon: 'check', end: false },
   { to: '/dobozok', label: 'Dobozok', short: 'Doboz', icon: 'package', end: false },
   { to: '/kiadasok', label: 'Kiadások', short: 'Kiadás', icon: 'receipt', end: false },
-  { to: '/jovahagyas', label: 'Jóváhagyásra vár', short: 'Jóváhagy.', icon: 'stamp', end: false, badge: true },
 ]
 
 function NavIcon({ name }: { name: string }) {
   if (name === 'grid') return <IconGrid size={16} />
   if (name === 'box') return <IconBox size={16} />
-  if (name === 'check') return <IconCheckSquare size={16} />
   if (name === 'package') return <IconPackage size={16} />
-  if (name === 'receipt') return <IconReceipt size={16} />
-  return <IconStamp size={16} />
+  return <IconReceipt size={16} />
 }
 
 export function AppShell() {
   const isDesktop = useIsDesktop()
   const location = useLocation()
-  const awaitingCount = useStore((s) => s.items.filter((i) => i.awaiting && !i.stamped).length)
 
   const contentPad = isDesktop ? '30px 34px 48px' : '18px 16px 28px'
 
@@ -187,7 +162,6 @@ export function AppShell() {
             <NavLink key={n.to} to={n.to} end={n.end} style={navStyle}>
               <NavIcon name={n.icon} />
               {n.label}
-              {n.badge && <CountBadge n={awaitingCount} />}
             </NavLink>
           ))}
 
@@ -252,7 +226,6 @@ export function AppShell() {
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} style={tabStyle}>
                 {n.short ?? n.label}
-                {n.badge && <CountBadge n={awaitingCount} tone="small" />}
               </NavLink>
             ))}
           </nav>
