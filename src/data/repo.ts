@@ -1,6 +1,7 @@
 import { supabase, EDITOR_EMAIL } from '../lib/supabase'
-import type { Item, Task, ItemNote, Box, Person, Phase, Assignee, Priority, ItemStatus } from '../types'
+import type { Item, Task, ItemNote, Box, Person, Phase, Assignee, Priority, ItemStatus, Receipt } from '../types'
 import type { Disposition } from '../theme'
+import type { ReceiptRecord } from '../lib/expenses'
 
 // --- Row shapes (snake_case, as stored) ------------------------------------
 interface ItemRow {
@@ -345,6 +346,122 @@ export async function deleteTask(id: number): Promise<void> {
   const { error } = await supabase.from('tasks').delete().eq('id', id)
   if (error) throw error
 }
+
+// --- Receipts (Kiadások) ----------------------------------------------------
+// Rows are immutable: insert and delete only, never update.
+interface ReceiptRow {
+  id: string
+  raw_xml?: string
+  datetime: string
+  local_date: string
+  merchant_name: string
+  chain: string | null
+  nif: string | null
+  receipt_number: string | null
+  total_cents: number
+  currency: string
+  source: Receipt['source']
+  confidence: Receipt['confidence']
+  item_count: number
+  search_text: string
+  warnings: unknown
+  imported_at: string
+}
+
+// Everything EXCEPT raw_xml — the verbatim XML can be large and the list never
+// needs it (same philosophy as the items photo split).
+const RECEIPT_LIGHT_COLUMNS =
+  'id,datetime,local_date,merchant_name,chain,nif,receipt_number,total_cents,currency,source,confidence,item_count,search_text,warnings,imported_at'
+
+export function rowToReceipt(r: ReceiptRow): Receipt {
+  return {
+    id: r.id,
+    datetime: r.datetime,
+    localDate: r.local_date,
+    merchantName: r.merchant_name,
+    chain: r.chain,
+    nif: r.nif,
+    receiptNumber: r.receipt_number,
+    totalCents: Number(r.total_cents),
+    currency: r.currency,
+    source: r.source,
+    confidence: r.confidence,
+    itemCount: r.item_count,
+    searchText: r.search_text,
+    warnings: Array.isArray(r.warnings) ? (r.warnings as Receipt['warnings']) : [],
+    importedAt: r.imported_at,
+  }
+}
+
+export async function fetchReceipts(): Promise<Receipt[]> {
+  const { data, error } = await supabase
+    .from('receipts')
+    .select(RECEIPT_LIGHT_COLUMNS)
+    .order('local_date', { ascending: false })
+    .order('datetime', { ascending: false })
+  if (error) throw error
+  return (data as ReceiptRow[]).map(rowToReceipt)
+}
+
+// CONTRACT: the receipt @id is unique across the store — the primary key
+// enforces it, a duplicate insert fails with 23505 and is reported as
+// rejected. A duplicate is never merged or overwritten.
+export async function insertReceipt(rec: ReceiptRecord): Promise<'imported' | 'duplicate'> {
+  const { error } = await supabase.from('receipts').insert({
+    id: rec.id,
+    raw_xml: rec.rawXml,
+    datetime: rec.datetime,
+    local_date: rec.localDate,
+    merchant_name: rec.merchantName,
+    chain: rec.chain,
+    nif: rec.nif,
+    receipt_number: rec.receiptNumber,
+    total_cents: rec.totalCents,
+    currency: rec.currency,
+    source: rec.source,
+    confidence: rec.confidence,
+    item_count: rec.itemCount,
+    search_text: rec.searchText,
+    warnings: rec.warnings,
+  })
+  if (error) {
+    if (error.code === '23505') return 'duplicate'
+    throw error
+  }
+  return 'imported'
+}
+
+export async function deleteReceipt(id: string): Promise<void> {
+  const { error } = await supabase.from('receipts').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function fetchReceiptRaw(id: string): Promise<string | null> {
+  const { data, error } = await supabase.from('receipts').select('raw_xml').eq('id', id).maybeSingle()
+  if (error) throw error
+  return (data as { raw_xml: string } | null)?.raw_xml ?? null
+}
+
+// For export: the verbatim elements plus their datetime (for ordering) in a
+// local-date range, inclusive on both ends.
+export async function fetchReceiptRawsInRange(
+  from: string,
+  to: string,
+): Promise<{ id: string; rawXml: string; datetime: string }[]> {
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('id,raw_xml,datetime')
+    .gte('local_date', from)
+    .lte('local_date', to)
+  if (error) throw error
+  return (data as { id: string; raw_xml: string; datetime: string }[]).map((r) => ({
+    id: r.id,
+    rawXml: r.raw_xml,
+    datetime: r.datetime,
+  }))
+}
+
+export type { ReceiptRow }
 
 // --- Public catalogue (no auth) --------------------------------------------
 export async function fetchPublicItems(): Promise<PublicItem[]> {

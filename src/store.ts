@@ -1,10 +1,11 @@
 import { create } from 'zustand'
-import type { Item, Task, ItemNote, Box, Person, ItemStatus, Assignee, Phase } from './types'
+import type { Item, Task, ItemNote, Box, Person, ItemStatus, Assignee, Phase, Receipt } from './types'
 import type { Disposition } from './theme'
+import type { ReceiptRecord } from './lib/expenses'
 import { supabase } from './lib/supabase'
 import * as repo from './data/repo'
-import { rowToItem, rowToTask, rowToNote, rowToBox, rowPatchToItem, rowPatchToBox } from './data/repo'
-import type { ItemRow, TaskRow, NoteRow, BoxRow } from './data/repo'
+import { rowToItem, rowToTask, rowToNote, rowToBox, rowToReceipt, rowPatchToItem, rowPatchToBox } from './data/repo'
+import type { ItemRow, TaskRow, NoteRow, BoxRow, ReceiptRow } from './data/repo'
 
 const ACTING_KEY = 'manifest-acting-as'
 
@@ -25,6 +26,7 @@ interface ManifestState {
   tasks: Task[]
   notes: ItemNote[]
   boxes: Box[]
+  receipts: Receipt[]
   flashId: number | null
 
   // lifecycle
@@ -62,6 +64,11 @@ interface ManifestState {
   removeBox: (id: number) => Promise<void>
   // Resolves to null on success, or an error code: 'taken' | 'error'.
   renumberBox: (id: number, newId: number) => Promise<'taken' | 'error' | null>
+
+  // receipts (Kiadások) — NOT optimistic: duplicate detection must be
+  // authoritative, so the per-receipt result waits for the database.
+  importReceipt: (rec: ReceiptRecord) => Promise<'imported' | 'duplicate' | 'error'>
+  removeReceipt: (id: string) => Promise<boolean>
 }
 
 let realtimeBound = false
@@ -77,6 +84,7 @@ export const useStore = create<ManifestState>((set, get) => ({
   tasks: [],
   notes: [],
   boxes: [],
+  receipts: [],
   flashId: null,
 
   init: () => {
@@ -92,7 +100,7 @@ export const useStore = create<ManifestState>((set, get) => ({
       const wasAuthed = get().authed
       set({ authed })
       if (authed && !wasAuthed) get().loadData()
-      if (!authed) set({ items: [], tasks: [], notes: [], boxes: [] })
+      if (!authed) set({ items: [], tasks: [], notes: [], boxes: [], receipts: [] })
     })
 
     if (!realtimeBound) {
@@ -148,6 +156,19 @@ export const useStore = create<ManifestState>((set, get) => ({
             }
           })
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, (payload) => {
+          set((s) => {
+            if (payload.eventType === 'DELETE') {
+              const oldId = (payload.old as { id?: string }).id
+              return { receipts: s.receipts.filter((r) => r.id !== oldId) }
+            }
+            // Receipts are immutable — only INSERTs arrive. The light mapper
+            // ignores raw_xml, so payload size is irrelevant here.
+            const row = rowToReceipt(payload.new as unknown as ReceiptRow)
+            const exists = s.receipts.some((r) => r.id === row.id)
+            return { receipts: exists ? s.receipts : [row, ...s.receipts] }
+          })
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'boxes' }, (payload) => {
           set((s) => {
             if (payload.eventType === 'DELETE') {
@@ -185,13 +206,14 @@ export const useStore = create<ManifestState>((set, get) => ({
     try {
       // Phase 1: the whole manifest MINUS inline photos, so names, tags and
       // prices paint immediately instead of blocking on megabytes of base64.
-      const [items, tasks, notes, boxes] = await Promise.all([
+      const [items, tasks, notes, boxes, receipts] = await Promise.all([
         repo.fetchItemsLight(),
         repo.fetchTasks(),
         repo.fetchNotes(),
         repo.fetchBoxes(),
+        repo.fetchReceipts(),
       ])
-      set({ items, tasks, notes, boxes, loading: false })
+      set({ items, tasks, notes, boxes, receipts, loading: false })
 
       // Phase 2: hydrate photos in the background and merge by id. Cards show
       // their placeholder until their thumbnail arrives; if this fails the app
@@ -224,7 +246,7 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   logout: async () => {
     await repo.signOut()
-    set({ authed: false, items: [], tasks: [], notes: [], boxes: [] })
+    set({ authed: false, items: [], tasks: [], notes: [], boxes: [], receipts: [] })
   },
 
   setActingAs: (p) => {
@@ -405,6 +427,49 @@ export const useStore = create<ManifestState>((set, get) => ({
       items: s.items.map((it) => (it.boxId === id ? { ...it, boxId: newId } : it)),
     }))
     return null
+  },
+
+  importReceipt: async (rec) => {
+    try {
+      const result = await repo.insertReceipt(rec)
+      if (result === 'imported') {
+        const light: Receipt = {
+          id: rec.id,
+          datetime: rec.datetime,
+          localDate: rec.localDate,
+          merchantName: rec.merchantName,
+          chain: rec.chain,
+          nif: rec.nif,
+          receiptNumber: rec.receiptNumber,
+          totalCents: rec.totalCents,
+          currency: rec.currency,
+          source: rec.source,
+          confidence: rec.confidence,
+          itemCount: rec.itemCount,
+          searchText: rec.searchText,
+          warnings: rec.warnings,
+          importedAt: new Date().toISOString(),
+        }
+        set((s) => ({
+          receipts: s.receipts.some((r) => r.id === light.id) ? s.receipts : [light, ...s.receipts],
+        }))
+      }
+      return result
+    } catch {
+      return 'error'
+    }
+  },
+
+  removeReceipt: async (id) => {
+    // Not optimistic either: after deletion the same @id may be imported
+    // again, so the UI must reflect the database's truth, not a guess.
+    try {
+      await repo.deleteReceipt(id)
+    } catch {
+      return false
+    }
+    set((s) => ({ receipts: s.receipts.filter((r) => r.id !== id) }))
+    return true
   },
 
   removeBox: async (id) => {

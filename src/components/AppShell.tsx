@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { color, font } from '../theme'
 import { useStore } from '../store'
 import { useIsDesktop } from '../hooks/useMedia'
-import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare, IconPackage } from './icons'
+import { IconGrid, IconBox, IconStamp, IconCopy, IconCheck, IconCheckSquare, IconPackage, IconReceipt } from './icons'
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
@@ -128,6 +128,7 @@ const NAV: NavItem[] = [
   { to: '/leltar', label: 'Leltár', icon: 'box', end: false },
   { to: '/feladatok', label: 'Feladatok', short: 'Feladat', icon: 'check', end: false },
   { to: '/dobozok', label: 'Dobozok', short: 'Doboz', icon: 'package', end: false },
+  { to: '/kiadasok', label: 'Kiadások', short: 'Kiadás', icon: 'receipt', end: false },
   { to: '/jovahagyas', label: 'Jóváhagyásra vár', short: 'Jóváhagy.', icon: 'stamp', end: false, badge: true },
 ]
 
@@ -136,6 +137,7 @@ function NavIcon({ name }: { name: string }) {
   if (name === 'box') return <IconBox size={16} />
   if (name === 'check') return <IconCheckSquare size={16} />
   if (name === 'package') return <IconPackage size={16} />
+  if (name === 'receipt') return <IconReceipt size={16} />
   return <IconStamp size={16} />
 }
 

@@ -39,6 +39,28 @@ export interface ItemNote {
   createdAt: string // ISO
 }
 
+// A stored receipt (Kiadások). The original <receipt> XML element lives in the
+// database verbatim; these are the indexed fields for querying and display.
+// raw_xml is intentionally NOT here — it is heavy and fetched only for the
+// detail view and export.
+export interface Receipt {
+  id: string // the receipt @id — unique across the store
+  datetime: string // as given in the file
+  localDate: string // YYYY-MM-DD in the receipt's own offset
+  merchantName: string
+  chain: string | null
+  nif: string | null
+  receiptNumber: string | null
+  totalCents: number // integer cents, never a float
+  currency: string
+  source: 'photo' | 'text' | 'manual'
+  confidence: 'high' | 'medium' | 'low'
+  itemCount: number
+  searchText: string
+  warnings: { code: string; message: string }[]
+  importedAt: string // ISO
+}
+
 export type Phase =
   | 'Ügyintézés'
   | 'Lakhatás'

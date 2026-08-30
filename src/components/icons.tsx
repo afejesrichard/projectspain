@@ -146,3 +146,34 @@ export function IconCheckSquare({ size = 18, style, strokeWidth = 1.6, checked =
     </svg>
   )
 }
+
+// A till receipt: torn bottom edge, ruled lines.
+export function IconReceipt({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M6 3h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 20V3Z" />
+      <path d="M9 8h6" />
+      <path d="M9 12h6" />
+    </svg>
+  )
+}
+
+export function IconDownload({ size = 15, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M12 4v10" />
+      <path d="m8 10.5 4 4 4-4" />
+      <path d="M5 19h14" />
+    </svg>
+  )
+}
+
+export function IconUpload({ size = 15, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M12 14V4" />
+      <path d="m8 7.5 4-4 4 4" />
+      <path d="M5 19h14" />
+    </svg>
+  )
+}
