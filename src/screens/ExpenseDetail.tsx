@@ -210,7 +210,7 @@ function ReceiptBody({ el, currency, localDate }: { el: Element; currency: strin
           <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5 }}>
             <thead>
               <tr>
-                {['#', 'Blokkon', 'Név', 'Db', 'Nettó', 'Kategória', 'Jelleg', 'ÁFA'].map((h) => (
+                {['#', 'Blokkon', 'Név', 'Menny.', 'Nettó', 'Kategória', 'Jelleg', 'ÁFA'].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -236,7 +236,10 @@ function ReceiptBody({ el, currency, localDate }: { el: Element; currency: strin
                   <td style={cell(true)}>{it.getAttribute('n')}</td>
                   <td style={{ ...cell(true), fontSize: 11 }}>{txt(kid(it, 'label'))}</td>
                   <td style={cell()}>{txt(kid(it, 'name'))}</td>
-                  <td style={cell(true)}>{txt(kid(it, 'qty'))}</td>
+                  {/* Weighed/measured lines carry qty/@unit (kg, l) — show it with the printed decimals. */}
+                  <td style={cell(true)}>
+                    {[txt(kid(it, 'qty')), kid(it, 'qty')?.getAttribute('unit')].filter(Boolean).join(' ')}
+                  </td>
                   <td style={{ ...cell(true), textAlign: 'right', fontWeight: 700 }}>{txt(kid(it, 'net'))}</td>
                   <td style={cell(true)}>{it.getAttribute('category')}</td>
                   <td style={cell(true)}>{it.getAttribute('recurrence') === 'one-off' ? 'egyszeri' : 'rendszeres'}</td>

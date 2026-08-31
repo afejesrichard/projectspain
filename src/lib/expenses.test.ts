@@ -253,6 +253,32 @@ describe('parseExpensesFile — currency', () => {
   })
 })
 
+describe('parseExpensesFile — v1 revision additions (31 Aug 2026), all optional', () => {
+  it('accepts a weighed line: qty/@unit with printed decimals and per-unit price', () => {
+    const weighed = MINIMAL.replace(
+      '<name lang="en">2 coffees</name>',
+      '<name lang="en">Manchego wedge</name>\n        <qty unit="kg">0.350</qty>\n        <unit-price>21.14</unit-price>',
+    )
+    const res = parseExpensesFile(wrap(weighed))
+    if (!res.ok) throw new Error('file should parse')
+    expect(res.receipts[0].status).toBe('valid')
+    if (res.receipts[0].status !== 'valid') return
+    expect(res.receipts[0].record.warnings).toEqual([])
+  })
+
+  it('accepts open-set reference types and still indexes the receipt-number', () => {
+    const withRefs = MINIMAL.replace(
+      '<items>',
+      '<reference type="booking-id">BK-9981</reference>\n    <reference type="partner-reference">GYG-4471</reference>\n    <reference type="receipt-number">034778670</reference>\n    <items>',
+    )
+    const res = parseExpensesFile(wrap(withRefs))
+    if (!res.ok) throw new Error('file should parse')
+    expect(res.receipts[0].status).toBe('valid')
+    if (res.receipts[0].status !== 'valid') return
+    expect(res.receipts[0].record.receiptNumber).toBe('034778670')
+  })
+})
+
 describe('extractReceiptRanges', () => {
   it('is not fooled by comments mentioning <receipt>', () => {
     const text = wrap('<!-- a <receipt> in a comment -->\n' + MINIMAL)
