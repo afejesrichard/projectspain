@@ -25,7 +25,7 @@ Every file is one `<expenses>` container holding one or more `<receipt>` element
 | `@currency` | no | only when different from the container |
 | `merchant` | yes | `name` required; `legal-name`, `nif`, `address` (`street`, `postcode`, `city`), `@chain` when known |
 | `datetime` | yes | ISO 8601 with offset. Date-only allowed with `precision="day"`. `@source`: `printed`, `photo-timestamp`, `user` |
-| `reference` | no | `@type`: `receipt-number`, `invoice-number`, `sequence` |
+| `reference` | no | `@type`: `receipt-number`, `invoice-number`, `sequence`, `booking-id`, `partner-reference`. Open set; the validator does not restrict it. |
 | `payment` | no | `@method`: `card`, `cash`, `transfer`, `bizum`, `other`; `@card` (e.g. `Visa Debit`), `@last4`, `@detail` free text. Never store the full PAN. |
 | `loyalty` | no | `@program`, `@used`, `@saving` (total printed loyalty saving) |
 | `items` | yes | one or more `item` |
@@ -41,11 +41,11 @@ Every file is one `<expenses>` container holding one or more `<receipt>` element
 | `@category` | yes | closed list below |
 | `@sub` | no | free lowercase slug (`dairy`, `canned`, `small-appliance`) |
 | `@recurrence` | no | `recurring` (default) or `one-off` |
-| `@vat` | no | letter as printed (Spain: A, B, C) |
+| `@vat` | no | letter as printed (Spain: A 4%, B 10%, C 21%). When the receipt prints rates but no letters, assign the letter from the printed IVA table and say so in `reconciliation`. |
 | `label` | photo only | text exactly as printed, `@lang` `ca` or `es` |
 | `name` | yes | normalized English, `@lang="en"` |
 | `brand` | no | |
-| `qty`, `unit-price` | when printed | |
+| `qty`, `unit-price` | when printed | `qty/@unit` (`kg`, `l`) for weighed or measured lines; `qty` then keeps the printed decimals (e.g. `0.350`), `unit-price` is the printed per-unit price, `gross` is the printed line amount. |
 | `gross` | yes | qty times unit price, before discounts |
 | `discounts/discount` | no | positive numbers; `@type`: `price-cut`, `lidl-plus`, `coupon`, `multibuy` |
 | `net` | yes | gross minus discounts |
@@ -95,3 +95,7 @@ Input: "Two coffees and two croissants at the bar on Marina, 7.40, cash, this mo
 ## Photo tip
 
 Capture the whole slip down to the barcode. On Lidl receipts the date, time, card type, last four digits and the IVA table all print below the contactless symbol, and they turn several inferred fields into printed ones.
+
+## Changes
+
+- 31 Aug 2026: added `reference/@type` values `booking-id` and `partner-reference` (booking confirmations); added `qty/@unit` for weighed lines; documented VAT letter assignment when a receipt prints rates without letters. All optional, no version bump; `version="1"` files stay valid.
