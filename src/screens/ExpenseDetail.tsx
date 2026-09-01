@@ -144,6 +144,22 @@ function kids(el: Element, name: string): Element[] {
 const kid = (el: Element | null, name: string): Element | null => (el ? kids(el, name)[0] ?? null : null)
 const txt = (el: Element | null): string => el?.textContent?.trim() ?? ''
 
+// [EXP-05] reference/@type → readable display labels. Before: no map existed,
+// every @type rendered as its raw value; that is fine for hyphenated words
+// ("receipt-number") but "nrc" is an acronym and should read NRC (spec 1 Sep
+// 2026). Only map types whose raw form reads poorly — everything else falls
+// through to the raw value below.
+const REFERENCE_TYPE_LABELS: Record<string, string> = { nrc: 'NRC' }
+
+// INVARIANT [EXP-05]: reference/@type is an open set (spec 31 Aug and 1 Sep
+// 2026). Unknown types must pass through untouched and render with a
+// raw-value fallback — never disappear, never warn. If rewriting the
+// reference rendering, this MUST survive.
+function referenceLabel(type: string | null): string {
+  if (!type) return 'hivatkozás'
+  return REFERENCE_TYPE_LABELS[type] ?? type
+}
+
 function ReceiptBody({ el, currency, localDate }: { el: Element; currency: string; localDate: string }) {
   const merchant = kid(el, 'merchant')
   const address = kid(merchant, 'address')
@@ -198,8 +214,10 @@ function ReceiptBody({ el, currency, localDate }: { el: Element; currency: strin
       <Section title="Vásárlás">
         <Line label="Időpont" value={txt(datetime)} mono />
         <Line label="Nap" value={fmtLocalDate(localDate)} />
+        {/* [EXP-05] label via referenceLabel: mapped types get a readable
+            label (nrc → NRC), unmapped open-set types keep the raw @type. */}
         {kids(el, 'reference').map((r, i) => (
-          <Line key={i} label={r.getAttribute('type') ?? 'hivatkozás'} value={txt(r)} mono />
+          <Line key={i} label={referenceLabel(r.getAttribute('type'))} value={txt(r)} mono />
         ))}
         <Line label="Fizetés" value={paymentLine} />
         <Line label="Hűségprogram" value={loyaltyLine} />

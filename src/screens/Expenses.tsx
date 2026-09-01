@@ -175,6 +175,12 @@ export function Expenses() {
         }
       }
       const rec = r.record
+      // CONTRACT [EXP-05]: the nif + receipt-number warn rule applies only when
+      // BOTH values exist. The !! guards make a receipt with no nif (state fee,
+      // tasa 790) or with only a non-receipt-number reference (e.g. type="nrc")
+      // skip this rule silently — no false duplicate warning, no null === null
+      // match, no crash — while the @id rule still applies at parse time and at
+      // the primary key. Must survive rewrites.
       const nifDup =
         !!rec.nif &&
         !!rec.receiptNumber &&
