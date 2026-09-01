@@ -266,6 +266,8 @@ describe('parseExpensesFile — v1 revision additions (31 Aug 2026), all optiona
     expect(res.receipts[0].record.warnings).toEqual([])
   })
 
+  // [EXP-05] regression guard: a rewrite once again treating @type as a closed
+  // enum would fail here.
   it('accepts open-set reference types and still indexes the receipt-number', () => {
     const withRefs = MINIMAL.replace(
       '<items>',
@@ -276,6 +278,64 @@ describe('parseExpensesFile — v1 revision additions (31 Aug 2026), all optiona
     expect(res.receipts[0].status).toBe('valid')
     if (res.receipts[0].status !== 'valid') return
     expect(res.receipts[0].record.receiptNumber).toBe('034778670')
+  })
+})
+
+// [EXP-05] Canonical state-fee example (spec revision 1 Sep 2026): no merchant
+// nif, no item @vat, no by-vat block, cash tender, reference type="nrc".
+// Before this fixture existed, nothing exercised a receipt where the nullable
+// duplicate-detection keys (nif, receipt-number) are BOTH absent.
+describe('parseExpensesFile — state fee (tasa 790, 1 Sep 2026 revision)', () => {
+  const tasa = readFileSync(
+    resolve(process.cwd(), 'fixtures/expenses/expenses_20260901_tasa790.xml'),
+    'utf8',
+  )
+
+  it('imports the tasa 790 fixture with zero warnings', () => {
+    const res = parseExpensesFile(tasa)
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+    expect(res.receipts).toHaveLength(1)
+    const r = res.receipts[0]
+    expect(r.status).toBe('valid')
+    if (r.status !== 'valid') return
+    expect(r.record.id).toBe('20260901-policia-01')
+    expect(r.record.localDate).toBe('2026-09-01')
+    expect(r.record.totalCents).toBe(1608)
+    expect(r.record.warnings).toEqual([])
+    // CONTRACT [EXP-05]: no nif and no receipt-number — the nrc reference must
+    // NOT be indexed as a receipt-number, so the nif + receipt-number duplicate
+    // rule cannot fire on it.
+    expect(r.record.nif).toBeNull()
+    expect(r.record.receiptNumber).toBeNull()
+  })
+
+  it('stores and re-exports the nrc reference element byte-for-byte', () => {
+    const res = parseExpensesFile(tasa)
+    if (!res.ok || res.receipts[0].status !== 'valid') throw new Error('fixture must parse')
+    const rec = res.receipts[0].record
+    // INVARIANT [EXP-05]: reference/@type is an open set — an unknown-to-the-
+    // 31-Aug-spec value like "nrc" is stored and re-emitted exactly as
+    // received (EXP-01), never normalised, lowercased, remapped or dropped.
+    const refLine = '<reference type="nrc">7900125841833JEQDL8CAP</reference>'
+    expect(rec.rawXml).toContain(refLine)
+    const xml = buildExportXml({
+      from: '2026-09-01',
+      to: '2026-09-01',
+      generated: '2026-09-01T12:00:00+02:00',
+      generator: 'project-spain/0.1.0',
+      receipts: [rec],
+    })
+    expect(xml).toContain(refLine)
+    expect(xml).toContain(rec.rawXml)
+  })
+
+  it('still rejects a second import of the same @id (the only applicable duplicate rule)', () => {
+    const res = parseExpensesFile(tasa, { existingIds: new Set(['20260901-policia-01']) })
+    if (!res.ok) throw new Error('file should parse')
+    expect(res.receipts[0].status).toBe('invalid')
+    if (res.receipts[0].status !== 'invalid') return
+    expect(res.receipts[0].errors.map((e) => e.code)).toContain('duplicate-id')
   })
 })
 

@@ -25,7 +25,7 @@ Every file is one `<expenses>` container holding one or more `<receipt>` element
 | `@currency` | no | only when different from the container |
 | `merchant` | yes | `name` required; `legal-name`, `nif`, `address` (`street`, `postcode`, `city`), `@chain` when known |
 | `datetime` | yes | ISO 8601 with offset. Date-only allowed with `precision="day"`. `@source`: `printed`, `photo-timestamp`, `user` |
-| `reference` | no | `@type`: `receipt-number`, `invoice-number`, `sequence`, `booking-id`, `partner-reference`. Open set; the validator does not restrict it. |
+| `reference` | no | `@type`: `receipt-number`, `invoice-number`, `sequence`, `booking-id`, `partner-reference`, `nrc`. Open set; the validator does not restrict it. |
 | `payment` | no | `@method`: `card`, `cash`, `transfer`, `bizum`, `other`; `@card` (e.g. `Visa Debit`), `@last4`, `@detail` free text. Never store the full PAN. |
 | `loyalty` | no | `@program`, `@used`, `@saving` (total printed loyalty saving) |
 | `items` | yes | one or more `item` |
@@ -99,3 +99,4 @@ Capture the whole slip down to the barcode. On Lidl receipts the date, time, car
 ## Changes
 
 - 31 Aug 2026: added `reference/@type` values `booking-id` and `partner-reference` (booking confirmations); added `qty/@unit` for weighed lines; documented VAT letter assignment when a receipt prints rates without letters. All optional, no version bump; `version="1"` files stay valid.
+- 1 Sep 2026: added `reference/@type` value `nrc` (NRC, the AEAT complete payment reference printed on tasa 790 state-fee payment slips). State-fee conventions: `merchant` may have no `nif` (the collecting body is not invoiced), items carry no `@vat` and `totals` has no `by-vat` block (state fees carry no IVA — say so in `reconciliation`), and a cash payment at a bank or ATM keeps the bank and terminal references in `payment/@detail`. All optional, no version bump; `version="1"` files stay valid.

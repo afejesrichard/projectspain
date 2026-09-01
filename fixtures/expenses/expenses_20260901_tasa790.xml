@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Spain expenses interchange format, version 1
+  Canonical state-fee example (tasa 790): no merchant nif, no item @vat,
+  no by-vat block, cash tender at a bank ATM, and an NRC payment reference
+  (reference/@type="nrc", spec revision 1 Sep 2026).
+  Element reference: expenses-format.md
+-->
+<expenses version="1" currency="EUR" generated="2026-09-01" generator="claude">
+
+  <receipt id="20260901-policia-01" source="photo" confidence="high">
+    <merchant>
+      <name>Dirección General de la Policía (tasa 790 código 012)</name>
+    </merchant>
+
+    <datetime source="printed">2026-09-01T10:12:44+02:00</datetime>
+    <reference type="nrc">7900125841833JEQDL8CAP</reference>
+    <payment method="cash" detail="CaixaBank ATM 08018-0231, operación 4471"/>
+
+    <items>
+      <item n="1" category="admin" sub="immigration" recurrence="one-off">
+        <label lang="es">TASA 790 CODIGO 012 EXPEDICION TIE</label>
+        <name lang="en">State fee 790/012 — residence card (TIE) issuance</name>
+        <qty>1</qty>
+        <unit-price>16.08</unit-price>
+        <gross>16.08</gross>
+        <net>16.08</net>
+      </item>
+    </items>
+
+    <totals>
+      <total>16.08</total>
+      <paid>16.08</paid>
+      <reconciliation status="ok">State fee, no IVA. Printed amount matches the single line.</reconciliation>
+    </totals>
+
+    <attachments>
+      <photo file="20260901_101533_tasa790_justificante.jpg"/>
+    </attachments>
+    <notes>Tasa 790-012 paid in cash at the bank for the TIE appointment; NRC is the bank's complete payment reference for AEAT.</notes>
+  </receipt>
+
+</expenses>

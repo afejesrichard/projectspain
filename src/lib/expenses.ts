@@ -485,6 +485,16 @@ function parseReceipt(
     return { status: 'invalid', index, id, errors }
   }
 
+  // CONTRACT [EXP-05]: duplicate detection keys are @id and nif + receipt-number
+  // ONLY. Both fields below are nullable — a state-fee receipt (tasa 790) has no
+  // merchant nif, and its only reference is type="nrc", not a receipt-number.
+  // INVARIANT [EXP-05]: reference/@type is an open set (spec 31 Aug and 1 Sep
+  // 2026); this loop indexes the receipt-number by exact type match and passes
+  // every other type through untouched — it never validates, restricts or
+  // remaps @type, and an nrc reference must never feed the nif rule. The code
+  // never assumed nif present or that the first reference is a receipt-number;
+  // this comment pins that so a rewrite cannot introduce either assumption.
+  // Must survive rewrites.
   const nif = merchant ? textOf(childNamed(merchant, 'nif')) || null : null
   let receiptNumber: string | null = null
   for (const ref of childrenNamed(el, 'reference')) {
