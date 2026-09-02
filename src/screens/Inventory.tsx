@@ -20,12 +20,14 @@ export function Inventory() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const items = useStore((s) => s.items)
+  const boxes = useStore((s) => s.boxes)
   const loading = useStore((s) => s.loading)
   const flashId = useStore((s) => s.flashId)
 
   const filter = params.get('dispo') ?? 'all'
   const [query, setQuery] = useState('')
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [showUnpacked, setShowUnpacked] = useState(false)
 
   const setFilter = (v: string) => {
     const next = new URLSearchParams(params)
@@ -34,15 +36,29 @@ export function Inventory() {
     setParams(next, { replace: true })
   }
 
+  // Items packed in an unpacked box have arrived — hidden by default, like the
+  // boxes themselves, and revealed together with them via the toggle.
+  const unpackedBoxIds = useMemo(
+    () => new Set(boxes.filter((b) => b.unpackedAt).map((b) => b.id)),
+    [boxes],
+  )
+  const inUnpackedBox = (it: (typeof items)[number]) =>
+    it.boxId != null && unpackedBoxIds.has(it.boxId)
+  const hiddenCount = useMemo(
+    () => items.filter(inUnpackedBox).length,
+    [items, unpackedBoxIds], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter((it) => {
+      if (!showUnpacked && inUnpackedBox(it)) return false
       if (q && !it.name.toLowerCase().includes(q)) return false
       if (filter === 'all') return true
       if (filter === 'published') return it.published
       return it.disposition === filter
     })
-  }, [items, filter, query])
+  }, [items, filter, query, showUnpacked, unpackedBoxIds]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -92,6 +108,11 @@ export function Inventory() {
             {label}
           </Chip>
         ))}
+        {hiddenCount > 0 && (
+          <Chip active={showUnpacked} onClick={() => setShowUnpacked((v) => !v)} color={color.keep}>
+            {showUnpacked ? 'Kicsomagolt tárgyak elrejtése' : `Kicsomagolt tárgyak (${hiddenCount})`}
+          </Chip>
+        )}
         <div
           style={{
             marginLeft: 'auto',
@@ -125,6 +146,11 @@ export function Inventory() {
         <div style={{ paddingTop: 12 }}>
           {items.length === 0 ? (
             <EmptyState title="Még semmi sincs katalogizálva." hint="Fotózd le az elsőt." />
+          ) : !showUnpacked && hiddenCount > 0 && filter === 'all' && !query.trim() ? (
+            <EmptyState
+              title="Minden tárgy kicsomagolt dobozban van."
+              hint="A fenti gombbal megjelenítheted őket."
+            />
           ) : (
             <EmptyState title="Nincs találat erre a szűrőre." hint="Próbálj másik szűrőt vagy keresést." />
           )}
