@@ -92,6 +92,10 @@ Once a box is fully emptied in the new home, it can be signalled and cleared:
 - An unpacked box wears a **KICSOMAGOLVA** stamp (steel blue) that replaces
   LEZÁRVA — it was opened, sealing is history. Its card fades and drops back
   to a dashed border: done, receding.
+- Unpacked boxes are **hidden from the Dobozok grid by default** — the move is
+  about what's still in motion. A **Kicsomagolt dobozok (N)** toggle next to
+  the search brings them back into view when needed; it only appears once at
+  least one box is unpacked.
 - The Dobozok header and the Dashboard box entry count them
   (`N doboz · M lezárva · K kicsomagolva`).
 - On an unpacked box with packed items, the detail offers **Doboz
