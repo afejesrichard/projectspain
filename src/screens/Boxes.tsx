@@ -42,6 +42,7 @@ export function Boxes() {
         <h1 style={{ fontFamily: font.display, fontWeight: 700, fontSize: 26, margin: 0, letterSpacing: '-0.01em' }}>Dobozok</h1>
         <span style={{ fontFamily: font.mono, fontSize: 13, color: color.softInk }}>
           {boxes.length} doboz · {boxes.filter((b) => b.sealed).length} lezárva
+          {boxes.some((b) => b.unpackedAt) && ` · ${boxes.filter((b) => b.unpackedAt).length} kicsomagolva`}
         </span>
         <button
           onClick={create}
@@ -143,6 +144,8 @@ function BoxCard({ box, itemCount, onOpen }: { box: Box; itemCount: number; onOp
   if (itemCount > 0) bits.push(`${itemCount} tárgy`)
   if (box.photos.length > 0) bits.push(`${box.photos.length} fotó`)
 
+  const unpacked = !!box.unpackedAt
+
   return (
     <button
       onClick={onOpen}
@@ -150,7 +153,8 @@ function BoxCard({ box, itemCount, onOpen }: { box: Box; itemCount: number; onOp
       style={{
         textAlign: 'left',
         // Sealed boxes are "stamped": solid border. Open boxes stay dashed.
-        border: box.sealed ? `1.5px solid ${color.ink}` : `1.5px dashed ${color.line}`,
+        // An unpacked box is done: it recedes — faded, back to a dashed line.
+        border: box.sealed && !unpacked ? `1.5px solid ${color.ink}` : `1.5px dashed ${color.line}`,
         background: color.cardWhite,
         borderRadius: 12,
         overflow: 'hidden',
@@ -159,11 +163,29 @@ function BoxCard({ box, itemCount, onOpen }: { box: Box; itemCount: number; onOp
         display: 'flex',
         flexDirection: 'column',
         color: 'inherit',
+        opacity: unpacked ? 0.62 : 1,
       }}
     >
       <div style={{ padding: '14px 14px 0', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 28, letterSpacing: '-0.01em' }}>#{box.id}</span>
-        {box.sealed && (
+        {unpacked ? (
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontFamily: font.mono,
+              fontSize: 9.5,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              color: color.keep,
+              border: `1.5px solid ${color.keep}`,
+              borderRadius: 4,
+              padding: '2px 7px',
+              transform: 'rotate(-3deg)',
+            }}
+          >
+            KICSOMAGOLVA
+          </span>
+        ) : box.sealed ? (
           <span
             style={{
               marginLeft: 'auto',
@@ -179,7 +201,7 @@ function BoxCard({ box, itemCount, onOpen }: { box: Box; itemCount: number; onOp
           >
             LEZÁRVA
           </span>
-        )}
+        ) : null}
       </div>
       <div style={{ padding: '4px 14px 12px', flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 500, minHeight: 18 }}>{box.label || <span style={{ color: color.faintInk }}>címke nélkül</span>}</div>

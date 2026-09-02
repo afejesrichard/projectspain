@@ -15,6 +15,7 @@ export function BoxDetail() {
   const items = useStore((s) => s.items)
   const updateBox = useStore((s) => s.updateBox)
   const removeBox = useStore((s) => s.removeBox)
+  const removeBoxWithItems = useStore((s) => s.removeBoxWithItems)
   const renumberBox = useStore((s) => s.renumberBox)
 
   const box = boxes.find((b) => b.id === Number(id))
@@ -22,7 +23,7 @@ export function BoxDetail() {
   const [room, setRoom] = useState(box?.room ?? '')
   const [note, setNote] = useState(box?.note ?? '')
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<'box' | 'purge' | null>(null)
   const [editingNumber, setEditingNumber] = useState(false)
   const [numberDraft, setNumberDraft] = useState('')
   const [numberError, setNumberError] = useState<string | null>(null)
@@ -36,6 +37,7 @@ export function BoxDetail() {
     }
     setEditingNumber(false)
     setNumberError(null)
+    setConfirmDelete(null)
   }, [box?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!box) {
@@ -187,7 +189,24 @@ export function BoxDetail() {
             </button>
           </span>
         )}
-        {box.sealed && (
+        {/* An unpacked box's stamp wins — it was opened, sealing is history. */}
+        {box.unpackedAt ? (
+          <span
+            style={{
+              fontFamily: font.mono,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              color: color.keep,
+              border: `1.5px solid ${color.keep}`,
+              borderRadius: 5,
+              padding: '4px 10px',
+              transform: 'rotate(-3deg)',
+            }}
+          >
+            KICSOMAGOLVA
+          </span>
+        ) : box.sealed ? (
           <span
             style={{
               fontFamily: font.mono,
@@ -202,7 +221,7 @@ export function BoxDetail() {
           >
             LEZÁRVA
           </span>
-        )}
+        ) : null}
         <span style={{ marginLeft: 'auto', fontFamily: font.mono, fontSize: 12.5, color: color.softInk }}>
           {packed.length} tárgy · {box.photos.length} fotó
         </span>
@@ -271,6 +290,23 @@ export function BoxDetail() {
           <Toggle on={box.sealed} onClick={() => updateBox(box.id, { sealed: !box.sealed })} />
         </div>
 
+        {/* unpacked — the packing-out signal */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500 }}>Kicsomagolva</div>
+            <div style={{ fontSize: 12.5, color: color.softInk }}>
+              Az új helyen minden kikerült belőle.
+              {box.unpackedAt && ` (${new Date(box.unpackedAt).toLocaleDateString('hu-HU')})`}
+            </div>
+          </div>
+          <Toggle
+            on={!!box.unpackedAt}
+            onClick={() =>
+              updateBox(box.id, { unpackedAt: box.unpackedAt ? null : new Date().toISOString() })
+            }
+          />
+        </div>
+
         {/* packed items */}
         <div>
           <FieldLabel>Becsomagolt tárgyak</FieldLabel>
@@ -308,11 +344,78 @@ export function BoxDetail() {
           )}
         </div>
 
+        {/* clear away an unpacked box together with its items */}
+        {box.unpackedAt && packed.length > 0 && (
+          <div style={{ borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18 }}>
+            {confirmDelete !== 'purge' ? (
+              <>
+                <button
+                  onClick={() => setConfirmDelete('purge')}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 8,
+                    border: `1px solid ${hexA(color.keep, 0.5)}`,
+                    background: 'transparent',
+                    color: color.keep,
+                    fontSize: 13.5,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Doboz eltávolítása a tárgyakkal együtt
+                </button>
+                <div style={{ fontSize: 12.5, color: color.softInk, marginTop: 8 }}>
+                  A kicsomagolt doboz és a benne nyilvántartott {packed.length} tárgy kikerül a
+                  leltárból — megérkeztek, nincs már mit követni rajtuk.
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13.5, color: color.mutedInk }}>
+                  Ez végleges — a doboz és a benne lévő {packed.length} tárgy törlődik a leltárból.
+                </span>
+                <button
+                  onClick={async () => {
+                    await removeBoxWithItems(box.id)
+                    navigate('/dobozok', { replace: true })
+                  }}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: color.keep,
+                    color: color.paper,
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Eltávolítom
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 8,
+                    border: `1px solid ${color.line}`,
+                    background: color.cardWhite,
+                    color: color.mutedInk,
+                    fontSize: 13.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Mégse
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* delete */}
         <div style={{ borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18, marginTop: 4 }}>
-          {!confirmDelete ? (
+          {confirmDelete !== 'box' ? (
             <button
-              onClick={() => setConfirmDelete(true)}
+              onClick={() => setConfirmDelete('box')}
               style={{
                 padding: '10px 16px',
                 borderRadius: 8,
@@ -350,7 +453,7 @@ export function BoxDetail() {
                 Törlöm
               </button>
               <button
-                onClick={() => setConfirmDelete(false)}
+                onClick={() => setConfirmDelete(null)}
                 style={{
                   padding: '10px 16px',
                   borderRadius: 8,

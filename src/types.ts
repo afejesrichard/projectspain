@@ -25,6 +25,7 @@ export interface Box {
   room: string
   note: string
   sealed: boolean
+  unpackedAt: string | null // ISO — set when the box was fully unpacked in the new home
   photos: string[]
 }
 

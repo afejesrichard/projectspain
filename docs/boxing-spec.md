@@ -82,9 +82,27 @@ to publish. RLS mirrors items: authenticated editors only.
 - Changing an item's disposition away from Visszük clears its `box_id` —
   something being sold or given away is by definition not coming in a box.
 
+## Packing out (kicsomagolás) — added later
+
+Once a box is fully emptied in the new home, it can be signalled and cleared:
+
+- `boxes.unpacked_at` (timestamptz, null = not unpacked) doubles as the flag
+  and the record of when it happened. Toggled from the box detail
+  (**Kicsomagolva**); the date shows next to the toggle.
+- An unpacked box wears a **KICSOMAGOLVA** stamp (steel blue) that replaces
+  LEZÁRVA — it was opened, sealing is history. Its card fades and drops back
+  to a dashed border: done, receding.
+- The Dobozok header and the Dashboard box entry count them
+  (`N doboz · M lezárva · K kicsomagolva`).
+- On an unpacked box with packed items, the detail offers **Doboz
+  eltávolítása a tárgyakkal együtt**: the box AND its items are deleted in one
+  transaction (`delete_box_with_items` RPC, migration `0008_box_unpacking`),
+  with the same quiet two-step confirm. The plain delete stays as-is (items
+  survive, only unpacked).
+
 ## Out of scope (possible later)
 
-- QR/label printing, box weight, unpacked-tracking in the new home.
+- QR/label printing, box weight.
 
 ## Storage budget
 

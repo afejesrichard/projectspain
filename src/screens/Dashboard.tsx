@@ -98,7 +98,12 @@ export function Dashboard() {
         <QuickEntry
           onClick={() => navigate('/dobozok')}
           label="Dobozok megnyitása"
-          note={`${boxes.length} doboz · ${boxes.filter((b) => b.sealed).length} lezárva`}
+          note={
+            `${boxes.length} doboz · ${boxes.filter((b) => b.sealed).length} lezárva` +
+            (boxes.some((b) => b.unpackedAt)
+              ? ` · ${boxes.filter((b) => b.unpackedAt).length} kicsomagolva`
+              : '')
+          }
         />
         <QuickEntry
           onClick={() => navigate('/kiadasok')}
