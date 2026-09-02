@@ -14,17 +14,22 @@ export function Boxes() {
   const addBox = useStore((s) => s.addBox)
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
+  const [showUnpacked, setShowUnpacked] = useState(false)
+
+  const unpackedCount = boxes.filter((b) => b.unpackedAt).length
 
   const filtered = useMemo(() => {
+    // Unpacked boxes are done — hidden by default, revealed with the toggle.
+    const base = showUnpacked ? boxes : boxes.filter((b) => !b.unpackedAt)
     const q = query.trim().toLowerCase()
-    if (!q) return boxes
-    return boxes.filter(
+    if (!q) return base
+    return base.filter(
       (b) =>
         b.label.toLowerCase().includes(q) ||
         b.room.toLowerCase().includes(q) ||
         String(b.id) === q.replace(/^#/, ''),
     )
-  }, [boxes, query])
+  }, [boxes, query, showUnpacked])
 
   const packedCount = (b: Box) => items.filter((i) => i.boxId === b.id).length
 
@@ -103,6 +108,29 @@ export function Boxes() {
             style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, width: '100%' }}
           />
         </div>
+        {unpackedCount > 0 && (
+          <button
+            onClick={() => setShowUnpacked((v) => !v)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '8px 13px',
+              borderRadius: 8,
+              border: `1px solid ${showUnpacked ? color.keep : color.line}`,
+              background: showUnpacked ? hexA(color.keep, 0.1) : color.cardWhite,
+              color: showUnpacked ? color.keep : color.mutedInk,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {showUnpacked
+              ? `Kicsomagolt dobozok elrejtése`
+              : `Kicsomagolt dobozok (${unpackedCount})`}
+          </button>
+        )}
       </div>
 
       {loading && boxes.length === 0 ? (
@@ -115,8 +143,13 @@ export function Boxes() {
         <div style={{ paddingTop: 12 }}>
           {boxes.length === 0 ? (
             <EmptyState title="Még nincs doboz." hint="Hozz létre egyet, írd a számát a dobozra, és fotózd, ami belekerül." />
-          ) : (
+          ) : query.trim() ? (
             <EmptyState title="Nincs találat." hint="Próbálj másik keresést." />
+          ) : (
+            <EmptyState
+              title="Minden doboz ki van csomagolva."
+              hint="A fenti gombbal megjelenítheted őket."
+            />
           )}
         </div>
       ) : (
