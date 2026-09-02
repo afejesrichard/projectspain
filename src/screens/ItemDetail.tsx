@@ -310,13 +310,14 @@ export function ItemDetail() {
 }
 
 // Which box is this Visszük item packed in? Chips for each open box + "none".
-// Sealed boxes are hidden — except the item's current one, so the assignment stays visible.
+// Sealed and already-unpacked boxes are hidden — except the item's current one,
+// so the assignment stays visible.
 function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) {
   const boxes = useStore((s) => s.boxes)
   const updateItem = useStore((s) => s.updateItem)
   const navigate = useNavigate()
 
-  const openBoxes = boxes.filter((b) => !b.sealed || b.id === boxId)
+  const openBoxes = boxes.filter((b) => (!b.sealed && !b.unpackedAt) || b.id === boxId)
 
   return (
     <div>
@@ -334,7 +335,7 @@ function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) 
         </div>
       ) : openBoxes.length === 0 ? (
         <div style={{ fontSize: 13.5, color: color.faintInk }}>
-          Minden doboz le van zárva —{' '}
+          Minden doboz le van zárva vagy már kicsomagolva —{' '}
           <button
             onClick={() => navigate('/dobozok')}
             style={{ border: 'none', background: 'transparent', color: color.keep, cursor: 'pointer', padding: 0, fontSize: 13.5 }}
@@ -352,7 +353,7 @@ function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) 
             <Chip key={b.id} active={boxId === b.id} onClick={() => updateItem(itemId, { boxId: b.id })}>
               #{b.id}
               {b.label ? ` · ${b.label}` : ''}
-              {b.sealed ? ' · lezárva' : ''}
+              {b.unpackedAt ? ' · kicsomagolva' : b.sealed ? ' · lezárva' : ''}
             </Chip>
           ))}
         </div>

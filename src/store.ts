@@ -53,6 +53,8 @@ interface ManifestState {
   addBox: () => Promise<number | null>
   updateBox: (id: number, patch: Partial<Box>) => Promise<void>
   removeBox: (id: number) => Promise<void>
+  // Packing out: the box AND its packed items are removed together.
+  removeBoxWithItems: (id: number) => Promise<void>
   // Resolves to null on success, or an error code: 'taken' | 'error'.
   renumberBox: (id: number, newId: number) => Promise<'taken' | 'error' | null>
 
@@ -384,6 +386,20 @@ export const useStore = create<ManifestState>((set, get) => ({
     }))
     try {
       await repo.deleteBox(id)
+    } catch {
+      get().loadData()
+    }
+  },
+
+  removeBoxWithItems: async (id) => {
+    // Optimistic: box and contents go together (mirrors the RPC's transaction);
+    // realtime DELETEs keep the other editor in sync.
+    set((s) => ({
+      boxes: s.boxes.filter((b) => b.id !== id),
+      items: s.items.filter((it) => it.boxId !== id),
+    }))
+    try {
+      await repo.deleteBoxWithItems(id)
     } catch {
       get().loadData()
     }

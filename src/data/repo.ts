@@ -171,6 +171,7 @@ interface BoxRow {
   room: string
   note: string
   sealed: boolean
+  unpacked_at: string | null
   photos: string[]
   created_at?: string
 }
@@ -182,6 +183,7 @@ export function rowToBox(r: BoxRow): Box {
     room: r.room ?? '',
     note: r.note ?? '',
     sealed: !!r.sealed,
+    unpackedAt: r.unpacked_at ?? null,
     photos: Array.isArray(r.photos) ? r.photos : [],
   }
 }
@@ -193,6 +195,7 @@ export function rowPatchToBox(raw: Partial<BoxRow>): Partial<Box> {
   if ('room' in raw) p.room = raw.room ?? ''
   if ('note' in raw) p.note = raw.note ?? ''
   if ('sealed' in raw) p.sealed = !!raw.sealed
+  if ('unpacked_at' in raw) p.unpackedAt = raw.unpacked_at ?? null
   if ('photos' in raw) p.photos = Array.isArray(raw.photos) ? raw.photos : []
   return p
 }
@@ -203,6 +206,7 @@ function boxToRow(b: Partial<Box>): Partial<BoxRow> {
   if (b.room !== undefined) row.room = b.room
   if (b.note !== undefined) row.note = b.note
   if (b.sealed !== undefined) row.sealed = b.sealed
+  if (b.unpackedAt !== undefined) row.unpacked_at = b.unpackedAt
   if (b.photos !== undefined) row.photos = b.photos
   return row
 }
@@ -227,6 +231,14 @@ export async function patchBox(id: number, patch: Partial<Box>): Promise<void> {
 
 export async function deleteBox(id: number): Promise<void> {
   const { error } = await supabase.from('boxes').delete().eq('id', id)
+  if (error) throw error
+}
+
+// Packing out: removes the box AND the items packed in it, in one transaction.
+// A plain deleteBox only unpacks them (FK on delete set null) — this one is for
+// a fully unpacked box whose contents have served their purpose in the app.
+export async function deleteBoxWithItems(id: number): Promise<void> {
+  const { error } = await supabase.rpc('delete_box_with_items', { p_box: id })
   if (error) throw error
 }
 
