@@ -96,6 +96,11 @@ Once a box is fully emptied in the new home, it can be signalled and cleared:
   about what's still in motion. A **Kicsomagolt dobozok (N)** toggle next to
   the search brings them back into view when needed; it only appears once at
   least one box is unpacked.
+- The items packed in an unpacked box are likewise **hidden from the Leltár**
+  by default — they've arrived, so they drop out of the working inventory. A
+  matching **Kicsomagolt tárgyak (N)** filter chip reveals them; it only shows
+  once at least one item sits in an unpacked box. (The box's own delete keeps
+  these items; clearing the box with its items removes them outright.)
 - The Dobozok header and the Dashboard box entry count them
   (`N doboz · M lezárva · K kicsomagolva`).
 - On an unpacked box with packed items, the detail offers **Doboz
