@@ -8,7 +8,10 @@ export interface Item {
   id: number
   name: string
   cover: string // short descriptive caption for the cover photo placeholder
-  photos: string[] // photo ids / data urls (placeholders in the prototype)
+  photos: string[] // full-size data URLs — loaded on demand, see photosLoaded
+  thumb: string | null // small cover thumbnail, always loaded with the row
+  photoCount: number // how many photos the row holds, without fetching them
+  photosLoaded: boolean // client-only: whether `photos` reflects the database
   disposition: Disposition
   priceHUF: number | null
   status: ItemStatus
@@ -18,6 +21,9 @@ export interface Item {
   boxId: number | null // Visszük items only: the box they're packed in
 }
 
+// What the add sheet supplies; thumb, count and load state are derived.
+export type ItemDraft = Omit<Item, 'id' | 'thumb' | 'photoCount' | 'photosLoaded'>
+
 // A numbered moving box. The id IS the number written on the physical box.
 export interface Box {
   id: number
@@ -26,7 +32,10 @@ export interface Box {
   note: string
   sealed: boolean
   unpackedAt: string | null // ISO — set when the box was fully unpacked in the new home
-  photos: string[]
+  photos: string[] // full-size data URLs — loaded on demand, see photosLoaded
+  thumb: string | null
+  photoCount: number
+  photosLoaded: boolean
 }
 
 export interface ItemNote {

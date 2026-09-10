@@ -25,6 +25,7 @@ export function ItemDetail() {
   const togglePublished = useStore((s) => s.togglePublished)
   const updateItem = useStore((s) => s.updateItem)
   const removeItem = useStore((s) => s.removeItem)
+  const ensureItemPhotos = useStore((s) => s.ensureItemPhotos)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const item = items.find((i) => i.id === Number(id))
@@ -38,6 +39,8 @@ export function ItemDetail() {
       setName(item.name)
       setPrice(item.priceHUF != null ? String(item.priceHUF) : '')
       setActivePhoto(0)
+      // Full-size photos are fetched per item, only here (INVARIANT [EGRESS-01]).
+      ensureItemPhotos(item.id)
     }
   }, [item?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -50,7 +53,13 @@ export function ItemDetail() {
     )
   }
 
-  const realPhotos = item.photos.filter((p) => p.startsWith('data:'))
+  // Until the full photos arrive the thumb stands in, so the header never
+  // flashes empty on an item that clearly has a picture.
+  const realPhotos = item.photosLoaded
+    ? item.photos.filter((p) => p.startsWith('data:'))
+    : item.thumb
+      ? [item.thumb]
+      : []
   const isSell = item.disposition === 'sell'
   const publishable = item.disposition === 'sell' || item.disposition === 'give'
   const isGive = item.disposition === 'give'

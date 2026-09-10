@@ -1,5 +1,5 @@
 import { supabase, EDITOR_EMAIL } from '../lib/supabase'
-import type { Item, ItemNote, Box, Person, ItemStatus, Receipt } from '../types'
+import type { Item, ItemDraft, ItemNote, Box, Person, ItemStatus, Receipt } from '../types'
 import type { Disposition } from '../theme'
 import type { ReceiptRecord } from '../lib/expenses'
 
@@ -9,6 +9,8 @@ interface ItemRow {
   name: string
   cover: string
   photos: string[]
+  thumb: string | null
+  photo_count: number
   disposition: Disposition
   price_huf: number | null
   status: ItemStatus
@@ -25,6 +27,8 @@ export interface PublicItem {
   name: string
   cover: string
   photos: string[]
+  thumb: string | null
+  photo_count: number
   disposition: Extract<Disposition, 'sell' | 'give'>
   price_huf: number | null
   status: ItemStatus
@@ -32,12 +36,18 @@ export interface PublicItem {
 }
 
 // --- Mappers ---------------------------------------------------------------
-export function rowToItem(r: ItemRow): Item {
+// `photosLoaded` is true only when the row actually carried its photos —
+// light fetches (no `photos` column) leave it false so screens know to ask.
+export function rowToItem(r: ItemRow | Omit<ItemRow, 'photos'>): Item {
+  const hasPhotos = 'photos' in r
   return {
     id: r.id,
     name: r.name,
     cover: r.cover,
-    photos: Array.isArray(r.photos) ? r.photos : [],
+    photos: hasPhotos && Array.isArray(r.photos) ? r.photos : [],
+    thumb: r.thumb ?? null,
+    photoCount: photoCountOf(r),
+    photosLoaded: hasPhotos,
     disposition: r.disposition,
     priceHUF: r.price_huf,
     status: r.status,
@@ -48,11 +58,20 @@ export function rowToItem(r: ItemRow): Item {
   }
 }
 
+// The stored count wins; a row that came with its photos but predates the
+// generated column (e.g. a test fixture) falls back to counting them.
+function photoCountOf(r: { photo_count?: number; photos?: unknown }): number {
+  if (typeof r.photo_count === 'number') return r.photo_count
+  return Array.isArray(r.photos) ? r.photos.length : 0
+}
+
+// photo_count is a generated column: never sent, only read.
 function itemToRow(it: Partial<Item>): Partial<ItemRow> {
   const row: Partial<ItemRow> = {}
   if (it.name !== undefined) row.name = it.name
   if (it.cover !== undefined) row.cover = it.cover
   if (it.photos !== undefined) row.photos = it.photos
+  if (it.thumb !== undefined) row.thumb = it.thumb
   if (it.disposition !== undefined) row.disposition = it.disposition
   if (it.priceHUF !== undefined) row.price_huf = it.priceHUF
   if (it.status !== undefined) row.status = it.status
@@ -71,7 +90,12 @@ export function rowPatchToItem(raw: Partial<ItemRow>): Partial<Item> {
   const p: Partial<Item> = {}
   if ('name' in raw) p.name = raw.name as string
   if ('cover' in raw) p.cover = raw.cover as string
-  if ('photos' in raw) p.photos = Array.isArray(raw.photos) ? raw.photos : []
+  if ('photos' in raw) {
+    p.photos = Array.isArray(raw.photos) ? raw.photos : []
+    p.photosLoaded = true
+  }
+  if ('thumb' in raw) p.thumb = raw.thumb ?? null
+  if ('photo_count' in raw) p.photoCount = raw.photo_count ?? 0
   if ('disposition' in raw) p.disposition = raw.disposition as Item['disposition']
   if ('price_huf' in raw) p.priceHUF = raw.price_huf ?? null
   if ('status' in raw) p.status = raw.status as Item['status']
@@ -83,12 +107,32 @@ export function rowPatchToItem(raw: Partial<ItemRow>): Partial<Item> {
 }
 
 // --- Auth ------------------------------------------------------------------
-export async function signIn(password: string): Promise<boolean> {
+// Why a login failed. A wrong password and an unreachable backend used to look
+// identical to the person typing, so a platform outage read as "forgot the
+// password". Only a rejected credential is `bad_password`; everything else
+// (network down, Supabase project paused or over quota, 5xx) is `unavailable`.
+export type SignInResult =
+  | { ok: true }
+  | { ok: false; reason: 'bad_password' }
+  | { ok: false; reason: 'unavailable'; message: string }
+
+export async function signIn(password: string): Promise<SignInResult> {
   const { error } = await supabase.auth.signInWithPassword({
     email: EDITOR_EMAIL,
     password: password.trim(),
   })
-  return !error
+  if (!error) return { ok: true }
+  return classifySignInError(error)
+}
+
+// Exported for tests. GoTrue rejects a wrong password with 400 +
+// `invalid_credentials`; anything else means the backend itself is the problem.
+export function classifySignInError(error: { code?: string; status?: number; message: string }): SignInResult {
+  const badCredentials =
+    error.code === 'invalid_credentials' ||
+    (error.status === 400 && /invalid login credentials/i.test(error.message))
+  if (badCredentials) return { ok: false, reason: 'bad_password' }
+  return { ok: false, reason: 'unavailable', message: error.message }
 }
 
 export async function signOut(): Promise<void> {
@@ -108,17 +152,7 @@ export async function hasSession(): Promise<boolean> {
 // few hundred KB each), so pulling it inline makes the initial manifest fetch
 // many times heavier than it needs to be. We fetch it separately and hydrate.
 const ITEM_LIGHT_COLUMNS =
-  'id,name,cover,disposition,price_huf,status,published,private_note,description,box_id,created_at'
-
-export async function fetchItems(): Promise<Item[]> {
-  const { data, error } = await supabase
-    .from('items')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: true })
-  if (error) throw error
-  return (data as ItemRow[]).map(rowToItem)
-}
+  'id,name,cover,thumb,photo_count,disposition,price_huf,status,published,private_note,description,box_id,created_at'
 
 // Fast path: the whole manifest minus the heavy inline photos, so the
 // text-first UI (names, tags, prices) can paint immediately.
@@ -129,12 +163,14 @@ export async function fetchItemsLight(): Promise<Item[]> {
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
   if (error) throw error
-  return (data as Omit<ItemRow, 'photos'>[]).map((r) => rowToItem({ ...r, photos: [] } as ItemRow))
+  return (data as Omit<ItemRow, 'photos'>[]).map(rowToItem)
 }
 
-// Second pass: just the photos, keyed by id, to merge in once the grid is up.
-export async function fetchItemPhotos(): Promise<Map<number, string[]>> {
-  const { data, error } = await supabase.from('items').select('id,photos')
+// Full photos for specific rows only — a detail screen, or the one-off thumb
+// backfill. Never the whole table (INVARIANT [EGRESS-01], src/lib/thumb.ts).
+export async function fetchItemPhotos(ids: number[]): Promise<Map<number, string[]>> {
+  if (ids.length === 0) return new Map()
+  const { data, error } = await supabase.from('items').select('id,photos').in('id', ids)
   if (error) throw error
   const map = new Map<number, string[]>()
   for (const r of data as { id: number; photos: unknown }[]) {
@@ -144,7 +180,7 @@ export async function fetchItemPhotos(): Promise<Map<number, string[]>> {
 }
 
 // --- Editor writes ---------------------------------------------------------
-export async function insertItem(draft: Omit<Item, 'id'>): Promise<Item> {
+export async function insertItem(draft: ItemDraft & { thumb: string | null }): Promise<Item> {
   const { data, error } = await supabase
     .from('items')
     .insert(itemToRow(draft))
@@ -173,10 +209,13 @@ interface BoxRow {
   sealed: boolean
   unpacked_at: string | null
   photos: string[]
+  thumb: string | null
+  photo_count: number
   created_at?: string
 }
 
-export function rowToBox(r: BoxRow): Box {
+export function rowToBox(r: BoxRow | Omit<BoxRow, 'photos'>): Box {
+  const hasPhotos = 'photos' in r
   return {
     id: r.id,
     label: r.label ?? '',
@@ -184,7 +223,10 @@ export function rowToBox(r: BoxRow): Box {
     note: r.note ?? '',
     sealed: !!r.sealed,
     unpackedAt: r.unpacked_at ?? null,
-    photos: Array.isArray(r.photos) ? r.photos : [],
+    photos: hasPhotos && Array.isArray(r.photos) ? r.photos : [],
+    thumb: r.thumb ?? null,
+    photoCount: photoCountOf(r),
+    photosLoaded: hasPhotos,
   }
 }
 
@@ -196,7 +238,12 @@ export function rowPatchToBox(raw: Partial<BoxRow>): Partial<Box> {
   if ('note' in raw) p.note = raw.note ?? ''
   if ('sealed' in raw) p.sealed = !!raw.sealed
   if ('unpacked_at' in raw) p.unpackedAt = raw.unpacked_at ?? null
-  if ('photos' in raw) p.photos = Array.isArray(raw.photos) ? raw.photos : []
+  if ('photos' in raw) {
+    p.photos = Array.isArray(raw.photos) ? raw.photos : []
+    p.photosLoaded = true
+  }
+  if ('thumb' in raw) p.thumb = raw.thumb ?? null
+  if ('photo_count' in raw) p.photoCount = raw.photo_count ?? 0
   return p
 }
 
@@ -208,13 +255,31 @@ function boxToRow(b: Partial<Box>): Partial<BoxRow> {
   if (b.sealed !== undefined) row.sealed = b.sealed
   if (b.unpackedAt !== undefined) row.unpacked_at = b.unpackedAt
   if (b.photos !== undefined) row.photos = b.photos
+  if (b.thumb !== undefined) row.thumb = b.thumb
   return row
 }
 
+// Everything except the inline photos (same split as items).
+const BOX_LIGHT_COLUMNS = 'id,label,room,note,sealed,unpacked_at,thumb,photo_count,created_at'
+
 export async function fetchBoxes(): Promise<Box[]> {
-  const { data, error } = await supabase.from('boxes').select('*').order('id', { ascending: true })
+  const { data, error } = await supabase
+    .from('boxes')
+    .select(BOX_LIGHT_COLUMNS)
+    .order('id', { ascending: true })
   if (error) throw error
-  return (data as BoxRow[]).map(rowToBox)
+  return (data as Omit<BoxRow, 'photos'>[]).map(rowToBox)
+}
+
+export async function fetchBoxPhotos(ids: number[]): Promise<Map<number, string[]>> {
+  if (ids.length === 0) return new Map()
+  const { data, error } = await supabase.from('boxes').select('id,photos').in('id', ids)
+  if (error) throw error
+  const map = new Map<number, string[]>()
+  for (const r of data as { id: number; photos: unknown }[]) {
+    map.set(r.id, Array.isArray(r.photos) ? (r.photos as string[]) : [])
+  }
+  return map
 }
 
 // Creates the next-numbered box; the returned id is the number to write on it.
@@ -404,36 +469,23 @@ export async function fetchReceiptRawsInRange(
 export type { ReceiptRow }
 
 // --- Public catalogue (no auth) --------------------------------------------
-export async function fetchPublicItems(): Promise<PublicItem[]> {
-  const { data, error } = await supabase
-    .from('public_items')
-    .select('id,name,cover,photos,disposition,price_huf,status,description')
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: true })
-  if (error) throw error
-  return (data as PublicItem[]).map((r) => ({ ...r, photos: Array.isArray(r.photos) ? r.photos : [] }))
-}
-
-// Two-pass load for the shareable page too: text and layout first, the heavy
-// base64 photos after, so strangers see the catalogue almost instantly.
+// The shareable page: text, tags and cover thumbs in one light query. The
+// full-size photo of a single item is fetched only when a visitor taps it.
 export async function fetchPublicItemsLight(): Promise<PublicItem[]> {
   const { data, error } = await supabase
     .from('public_items')
-    .select('id,name,cover,disposition,price_huf,status,description')
+    .select('id,name,cover,thumb,photo_count,disposition,price_huf,status,description')
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
   if (error) throw error
   return (data as Omit<PublicItem, 'photos'>[]).map((r) => ({ ...r, photos: [] }))
 }
 
-export async function fetchPublicItemPhotos(): Promise<Map<number, string[]>> {
-  const { data, error } = await supabase.from('public_items').select('id,photos')
+export async function fetchPublicItemPhotos(id: number): Promise<string[]> {
+  const { data, error } = await supabase.from('public_items').select('photos').eq('id', id).maybeSingle()
   if (error) throw error
-  const map = new Map<number, string[]>()
-  for (const r of data as { id: number; photos: unknown }[]) {
-    map.set(r.id, Array.isArray(r.photos) ? (r.photos as string[]) : [])
-  }
-  return map
+  const photos = (data as { photos?: unknown } | null)?.photos
+  return Array.isArray(photos) ? (photos as string[]) : []
 }
 
 export type { ItemRow }

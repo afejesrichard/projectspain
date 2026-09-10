@@ -15,24 +15,12 @@ export function PublicPage() {
   useEffect(() => {
     document.title = 'Project Spain — jó gazdát keresünk'
     let alive = true
-    // Text and layout first, then hydrate photos, so the catalogue appears
-    // almost instantly instead of waiting on inline base64 images.
+    // One light query: text, tags and cover thumbs. A full-size photo is
+    // fetched only when a visitor taps a card (INVARIANT [EGRESS-01]).
     fetchPublicItemsLight()
       .then((data) => {
         if (!alive) return
         setItems(data)
-        fetchPublicItemPhotos()
-          .then((photosById) => {
-            if (!alive) return
-            setItems((prev) =>
-              prev
-                ? prev.map((i) => (photosById.has(i.id) ? { ...i, photos: photosById.get(i.id)! } : i))
-                : prev,
-            )
-          })
-          .catch(() => {
-            /* keep placeholders */
-          })
       })
       .catch(() => alive && setFailed(true))
     return () => {
@@ -254,9 +242,26 @@ function Section({
 }
 
 function PublicCard({ item }: { item: PublicItem }) {
-  const photoUrl = item.photos.find((p) => p.startsWith('data:')) ?? null
+  const photoUrl = item.thumb
   const reserved = item.status === 'reserved'
   const [open, setOpen] = useState(false)
+  // The lightbox shows the real photo; the thumb fills in while it loads.
+  const [full, setFull] = useState<string | null>(null)
+  useEffect(() => {
+    if (!open || full) return
+    let alive = true
+    fetchPublicItemPhotos(item.id)
+      .then((photos) => {
+        const first = photos.find((p) => p.startsWith('data:'))
+        if (alive && first) setFull(first)
+      })
+      .catch(() => {
+        /* the thumb stays up */
+      })
+    return () => {
+      alive = false
+    }
+  }, [open, full, item.id])
   return (
     <div
       className="mf-card-cv"
@@ -309,7 +314,7 @@ function PublicCard({ item }: { item: PublicItem }) {
       >
         <PhotoPlaceholder caption={item.cover} photoUrl={photoUrl} />
       </button>
-      {open && photoUrl && <Lightbox url={photoUrl} onClose={() => setOpen(false)} />}
+      {open && photoUrl && <Lightbox url={full ?? photoUrl} onClose={() => setOpen(false)} />}
       <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
         <div style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.3 }}>{item.name}</div>
         {item.description && <div style={{ fontSize: 13.5, color: color.mutedInk, lineHeight: 1.4 }}>{item.description}</div>}
