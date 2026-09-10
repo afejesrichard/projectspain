@@ -8,18 +8,19 @@ export function Login() {
   const login = useStore((s) => s.login)
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<null | { kind: 'bad_password' } | { kind: 'unavailable'; message: string }>(null)
   const [busy, setBusy] = useState(false)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (busy) return
     setBusy(true)
-    setError(false)
-    const ok = await login(password)
+    setError(null)
+    const result = await login(password)
     setBusy(false)
-    if (ok) navigate('/', { replace: true })
-    else setError(true)
+    if (result.ok) navigate('/', { replace: true })
+    else if (result.reason === 'bad_password') setError({ kind: 'bad_password' })
+    else setError({ kind: 'unavailable', message: result.message })
   }
 
   return (
@@ -76,7 +77,7 @@ export function Login() {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value)
-              setError(false)
+              setError(null)
             }}
             style={{
               width: '100%',
@@ -88,9 +89,17 @@ export function Login() {
               outline: 'none',
             }}
           />
-          {error && (
+          {error?.kind === 'bad_password' && (
             <div style={{ color: color.throw, fontSize: 12.5, marginTop: 8 }}>
               Nem stimmel a jelszó. Próbáld újra.
+            </div>
+          )}
+          {error?.kind === 'unavailable' && (
+            <div style={{ color: color.throw, fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
+              A jelszó rendben lehet, de a szerver most nem elérhető. Nem a jelszóval van a baj.
+              <div style={{ fontFamily: font.mono, fontSize: 11, color: color.softInk, marginTop: 6, wordBreak: 'break-word' }}>
+                {error.message}
+              </div>
             </div>
           )}
         </div>

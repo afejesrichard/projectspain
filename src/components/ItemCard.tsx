@@ -23,7 +23,7 @@ export function ItemCard({ item, onOpen, flash }: { item: Item; onOpen: () => vo
         color: 'inherit',
       }}
     >
-      <PhotoPlaceholder caption={item.cover} photoUrl={item.photos[0]?.startsWith('data:') ? item.photos[0] : null}>
+      <PhotoPlaceholder caption={item.cover} photoUrl={item.thumb}>
         {item.published && (
           <span
             style={{

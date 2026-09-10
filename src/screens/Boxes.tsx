@@ -172,10 +172,10 @@ function Grid({ children }: { children: React.ReactNode }) {
 }
 
 function BoxCard({ box, itemCount, onOpen }: { box: Box; itemCount: number; onOpen: () => void }) {
-  const photo = box.photos.find((p) => p.startsWith('data:')) ?? null
+  const photo = box.thumb
   const bits: string[] = []
   if (itemCount > 0) bits.push(`${itemCount} tárgy`)
-  if (box.photos.length > 0) bits.push(`${box.photos.length} fotó`)
+  if (box.photoCount > 0) bits.push(`${box.photoCount} fotó`)
 
   const unpacked = !!box.unpackedAt
 

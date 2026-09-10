@@ -1,11 +1,12 @@
 import { create } from 'zustand'
-import type { Item, ItemNote, Box, Person, ItemStatus, Receipt } from './types'
+import type { Item, ItemDraft, ItemNote, Box, Person, ItemStatus, Receipt } from './types'
 import type { Disposition } from './theme'
 import type { ReceiptRecord } from './lib/expenses'
 import { supabase } from './lib/supabase'
 import * as repo from './data/repo'
 import { rowToItem, rowToNote, rowToBox, rowToReceipt, rowPatchToItem, rowPatchToBox } from './data/repo'
 import type { ItemRow, NoteRow, BoxRow, ReceiptRow } from './data/repo'
+import { makeThumb, needsThumb } from './lib/thumb'
 
 const ACTING_KEY = 'manifest-acting-as'
 
@@ -33,18 +34,21 @@ interface ManifestState {
   loadData: () => Promise<void>
 
   // session
-  login: (password: string) => Promise<boolean>
+  login: (password: string) => Promise<repo.SignInResult>
   logout: () => Promise<void>
   setActingAs: (p: Person) => void
   clearFlash: () => void
 
   // items
-  addItem: (draft: Omit<Item, 'id'>) => Promise<number | null>
+  addItem: (draft: ItemDraft) => Promise<number | null>
   setDisposition: (id: number, d: Disposition) => Promise<void>
   setStatus: (id: number, s: ItemStatus) => Promise<void>
   updateItem: (id: number, patch: Partial<Item>) => Promise<void>
   togglePublished: (id: number) => Promise<void>
   removeItem: (id: number) => Promise<void>
+  // Full-size photos are not part of the initial load (INVARIANT [EGRESS-01]);
+  // a detail screen asks for its own row's photos when it opens.
+  ensureItemPhotos: (id: number) => Promise<void>
 
   // notes
   addNote: (itemId: number, body: string) => Promise<void>
@@ -52,6 +56,7 @@ interface ManifestState {
   // boxes
   addBox: () => Promise<number | null>
   updateBox: (id: number, patch: Partial<Box>) => Promise<void>
+  ensureBoxPhotos: (id: number) => Promise<void>
   removeBox: (id: number) => Promise<void>
   // Packing out: the box AND its packed items are removed together.
   removeBoxWithItems: (id: number) => Promise<void>
@@ -192,33 +197,51 @@ export const useStore = create<ManifestState>((set, get) => ({
       ])
       set({ items, notes, boxes, receipts, loading: false })
 
-      // Phase 2: hydrate photos in the background and merge by id. Cards show
-      // their placeholder until their thumbnail arrives; if this fails the app
-      // stays fully usable, just without pictures.
-      repo
-        .fetchItemPhotos()
-        .then((photosById) => {
-          set((s) => ({
-            items: s.items.map((it) =>
-              photosById.has(it.id) ? { ...it, photos: photosById.get(it.id)! } : it,
-            ),
-          }))
-        })
-        .catch(() => {
-          /* thumbnails simply stay as placeholders */
-        })
+      // Phase 2: rows that have photos but no thumb yet (from before thumbs
+      // existed) get one generated here and written back, so the next load —
+      // on any device — is light. Best effort; the app is fully usable without.
+      backfillThumbs().catch(() => {
+        /* thumbs simply stay as placeholders until the next attempt */
+      })
     } catch {
       set({ loading: false })
     }
   },
 
+  ensureItemPhotos: async (id) => {
+    const it = get().items.find((i) => i.id === id)
+    if (!it || it.photosLoaded || it.photoCount === 0) return
+    try {
+      const photos = (await repo.fetchItemPhotos([id])).get(id) ?? []
+      set((s) => ({
+        items: s.items.map((i) => (i.id === id ? { ...i, photos, photosLoaded: true } : i)),
+      }))
+    } catch {
+      /* the thumb stays on screen; the next open tries again */
+    }
+  },
+
+  ensureBoxPhotos: async (id) => {
+    const b = get().boxes.find((x) => x.id === id)
+    if (!b || b.photosLoaded) return
+    try {
+      const photos = (await repo.fetchBoxPhotos([id])).get(id) ?? []
+      set((s) => ({
+        boxes: s.boxes.map((x) => (x.id === id ? { ...x, photos, photosLoaded: true } : x)),
+      }))
+    } catch {
+      /* leave photosLoaded false: the uploader stays disabled rather than
+         risk overwriting photos it never saw */
+    }
+  },
+
   login: async (password) => {
-    const ok = await repo.signIn(password)
-    if (ok) {
+    const result = await repo.signIn(password)
+    if (result.ok) {
       set({ authed: true })
       await get().loadData()
     }
-    return ok
+    return result
   },
 
   logout: async () => {
@@ -239,7 +262,8 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   addItem: async (draft) => {
     try {
-      const created = await repo.insertItem(draft)
+      const created = await repo.insertItem({ ...draft, thumb: await makeThumb(draft.photos) })
+      // The insert returns the full row, photos included, so it is loaded.
       set((s) => ({ items: [created, ...s.items.filter((i) => i.id !== created.id)], flashId: created.id }))
       return created.id
     } catch {
@@ -261,6 +285,7 @@ export const useStore = create<ManifestState>((set, get) => ({
   },
 
   updateItem: async (id, patch) => {
+    if (patch.photos) patch = await withThumb(patch)
     // optimistic
     set((s) => ({ items: s.items.map((it) => (it.id === id ? { ...it, ...patch } : it)), flashId: id }))
     try {
@@ -308,6 +333,7 @@ export const useStore = create<ManifestState>((set, get) => ({
   },
 
   updateBox: async (id, patch) => {
+    if (patch.photos) patch = await withThumb(patch)
     set((s) => ({ boxes: s.boxes.map((b) => (b.id === id ? { ...b, ...patch } : b)) }))
     try {
       await repo.patchBox(id, patch)
@@ -405,3 +431,46 @@ export const useStore = create<ManifestState>((set, get) => ({
     }
   },
 }))
+
+// A photo change carries its own thumb and count, so the card and the "N fotó"
+// label update in the same write (the database recomputes photo_count itself).
+async function withThumb<T extends { photos?: string[] }>(patch: T): Promise<T & { thumb: string | null; photoCount: number; photosLoaded: true }> {
+  const photos = patch.photos ?? []
+  return { ...patch, thumb: await makeThumb(photos), photoCount: photos.length, photosLoaded: true }
+}
+
+// One-time migration of rows saved before thumbs existed. Pulls their full
+// photos in small batches, renders a thumb on this device, and writes it back.
+// Runs on every load but is a no-op once every row with photos has a thumb.
+const BACKFILL_BATCH = 8
+
+async function backfillThumbs(): Promise<void> {
+  if (typeof document === 'undefined') return
+  const { items, boxes } = useStore.getState()
+
+  const itemIds = items.filter(needsThumb).map((i) => i.id)
+  for (let at = 0; at < itemIds.length; at += BACKFILL_BATCH) {
+    const batch = itemIds.slice(at, at + BACKFILL_BATCH)
+    const photosById = await repo.fetchItemPhotos(batch)
+    for (const [id, photos] of photosById) {
+      const thumb = await makeThumb(photos)
+      useStore.setState((s) => ({
+        items: s.items.map((i) => (i.id === id ? { ...i, photos, photosLoaded: true, thumb } : i)),
+      }))
+      if (thumb) await repo.patchItem(id, { thumb })
+    }
+  }
+
+  const boxIds = boxes.filter(needsThumb).map((b) => b.id)
+  for (let at = 0; at < boxIds.length; at += BACKFILL_BATCH) {
+    const batch = boxIds.slice(at, at + BACKFILL_BATCH)
+    const photosById = await repo.fetchBoxPhotos(batch)
+    for (const [id, photos] of photosById) {
+      const thumb = await makeThumb(photos)
+      useStore.setState((s) => ({
+        boxes: s.boxes.map((b) => (b.id === id ? { ...b, photos, photosLoaded: true, thumb } : b)),
+      }))
+      if (thumb) await repo.patchBox(id, { thumb })
+    }
+  }
+}

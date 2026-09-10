@@ -17,6 +17,7 @@ export function BoxDetail() {
   const removeBox = useStore((s) => s.removeBox)
   const removeBoxWithItems = useStore((s) => s.removeBoxWithItems)
   const renumberBox = useStore((s) => s.renumberBox)
+  const ensureBoxPhotos = useStore((s) => s.ensureBoxPhotos)
 
   const box = boxes.find((b) => b.id === Number(id))
   const [label, setLabel] = useState(box?.label ?? '')
@@ -34,6 +35,7 @@ export function BoxDetail() {
       setLabel(box.label)
       setRoom(box.room)
       setNote(box.note)
+      ensureBoxPhotos(box.id)
     }
     setEditingNumber(false)
     setNumberError(null)
@@ -223,7 +225,7 @@ export function BoxDetail() {
           </span>
         ) : null}
         <span style={{ marginLeft: 'auto', fontFamily: font.mono, fontSize: 12.5, color: color.softInk }}>
-          {packed.length} tárgy · {box.photos.length} fotó
+          {packed.length} tárgy · {box.photoCount} fotó
         </span>
       </div>
 
@@ -238,14 +240,37 @@ export function BoxDetail() {
         {/* photos of the contents */}
         <div>
           <FieldLabel>Mi van benne · fotók</FieldLabel>
-          <PhotoUploader
-            photos={box.photos}
-            onChange={(photos) => updateBox(box.id, { photos })}
-            maxPhotos={8}
-            maxDim={1024}
-            quality={0.65}
-            onPhotoClick={setLightboxUrl}
-          />
+          {box.photosLoaded ? (
+            <PhotoUploader
+              photos={box.photos}
+              onChange={(photos) => updateBox(box.id, { photos })}
+              maxPhotos={8}
+              maxDim={1024}
+              quality={0.65}
+              onPhotoClick={setLightboxUrl}
+            />
+          ) : (
+            // The uploader edits the whole photo list, so it must not render
+            // until that list is really here — otherwise adding one photo
+            // would silently drop the ones it never saw.
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '14px 16px',
+                borderRadius: 12,
+                border: `1.5px dashed ${color.line}`,
+                color: color.mutedInk,
+                fontSize: 13.5,
+              }}
+            >
+              {box.thumb && (
+                <img src={box.thumb} alt="" style={{ width: 46, height: 36, objectFit: 'cover', borderRadius: 6 }} />
+              )}
+              Fotók betöltése…
+            </div>
+          )}
         </div>
 
         <Field label="Címke">
@@ -335,7 +360,7 @@ export function BoxDetail() {
                   }}
                 >
                   <div style={{ width: 46, height: 36, borderRadius: 6, overflow: 'hidden', border: `1px solid ${color.line}`, flex: '0 0 auto' }}>
-                    <PhotoPlaceholder caption="" aspect="46/36" photoUrl={it.photos[0]?.startsWith('data:') ? it.photos[0] : null} />
+                    <PhotoPlaceholder caption="" aspect="46/36" photoUrl={it.thumb} />
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 500 }}>{it.name}</span>
                 </button>

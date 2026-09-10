@@ -72,6 +72,22 @@ leak there. This is enforced at the database, not just the UI:
 See `supabase/migrations/` for the exact schema and RLS policies. The database
 starts empty — everything is catalogued by the two of you, in the app.
 
+### Photos and bandwidth
+
+Photos live inline in the rows as base64 data URLs, so every byte stored is a
+byte downloaded again whenever it is read. The free Supabase plan allows
+**5.5 GB of egress a month**; pulling the full photo set (~25 MB) on every app
+open burned through that in a few weeks and Supabase cut the project off
+until the next billing cycle (the login screen then reports the outage rather
+than a wrong password).
+
+To keep loads light, each row also stores a small `thumb` (~320px, ~15 KB) and
+a `photo_count`. Grids and the public catalogue only ever read the thumb; the
+full-size `photos` column is fetched **per row, on demand** — when a detail
+screen opens or a visitor taps a card. Rows from before thumbs existed get
+one generated and written back by the first device that opens the app. Usage
+is visible in the Supabase dashboard under Organization → Usage.
+
 ## Deployment
 
 Every push to `main` builds the app and deploys it to GitHub Pages via
