@@ -45,6 +45,15 @@ function weekendOf(today: Date): { from: Date; to: Date } {
 
 const MONTH_SHORT = new Intl.DateTimeFormat('hu-HU', { month: 'short' })
 
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function parseIso(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 function fmtRange(from: Date, to: Date): string {
   const m1 = MONTH_SHORT.format(from)
   if (from.getMonth() === to.getMonth()) return `${m1} ${from.getDate()}–${to.getDate()}.`
@@ -64,7 +73,16 @@ function tileContent(id: ModuleId, today: Date): TileContent {
   }
   if (id === 'weekend') {
     const { from, to } = weekendOf(today)
-    return { figure: fmtRange(from, to), sub: 'Hamarosan az appban', dot: 'idle' }
+    const w = readTile('weekend')
+    // The cached screen counts only while its weekend has not ended.
+    if (w && w.to >= isoDate(today)) {
+      return {
+        figure: fmtRange(parseIso(w.from), parseIso(w.to)),
+        sub: `${w.count} program${w.stale ? ' · elavult' : ''}`,
+        dot: w.alert === 'warn' || w.stale ? 'warn' : 'good',
+      }
+    }
+    return { figure: fmtRange(from, to), sub: 'Programok', dot: 'idle' }
   }
   if (id === 'flights') {
     return { figure: 'Figyelés', sub: 'Hamarosan az appban', dot: 'idle' }

@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { appHelp } from './app'
 import { budgetHelp } from './budget'
 import { movingHelp } from './moving'
+import { weekendHelp } from './weekend'
 import { resolveHelp, type HelpBlock, type HelpMap } from './types'
 import { MODULES } from '../modules'
 
-const MAPS: Record<string, HelpMap> = { app: appHelp, budget: budgetHelp, moving: movingHelp }
+const MAPS: Record<string, HelpMap> = { app: appHelp, budget: budgetHelp, moving: movingHelp, weekend: weekendHelp }
 
 function blockText(b: HelpBlock): string {
   if (typeof b === 'string') return b

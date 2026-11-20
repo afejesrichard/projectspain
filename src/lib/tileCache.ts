@@ -3,12 +3,13 @@
 // convenience: an empty or blocked storage just means the tile shows its
 // fallback text.
 
-export type TileKey = 'moving' | 'receipts' | 'budget'
+export type TileKey = 'moving' | 'receipts' | 'budget' | 'weekend'
 
 export interface TileFigures {
   moving: { items: number; boxes: number }
   receipts: { month: string; count: number }
   budget: { month: string; spentCents: number; budgetCents: number; verdict: 'good' | 'warn' | 'bad' }
+  weekend: { from: string; to: string; count: number; alert: 'ok' | 'warn'; stale: boolean }
 }
 
 const PREFIX = 'ps-tile:'
@@ -32,7 +33,7 @@ export function writeTile<K extends TileKey>(key: K, value: TileFigures[K]): voi
 
 export function clearTiles(): void {
   try {
-    for (const k of ['moving', 'receipts', 'budget'] satisfies TileKey[]) localStorage.removeItem(PREFIX + k)
+    for (const k of ['moving', 'receipts', 'budget', 'weekend'] satisfies TileKey[]) localStorage.removeItem(PREFIX + k)
   } catch {
     /* ignore */
   }

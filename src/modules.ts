@@ -38,7 +38,13 @@ export const MODULES: ModuleDef[] = [
     ],
     guide: () => import('./help/budget').then((m) => m.budgetHelp.guide),
   },
-  { id: 'weekend', title: 'Hétvége', path: '/hetvege', prefixes: ['/hetvege'] },
+  {
+    id: 'weekend',
+    title: 'Hétvége',
+    path: '/hetvege',
+    prefixes: ['/hetvege'],
+    guide: () => import('./help/weekend').then((m) => m.weekendHelp.guide),
+  },
   { id: 'flights', title: 'Repjegy', path: '/repjegy', prefixes: ['/repjegy'] },
   {
     id: 'moving',
