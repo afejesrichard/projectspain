@@ -11,7 +11,6 @@ const AppShell = lazy(() => import('./components/AppShell').then((m) => ({ defau
 const Login = lazy(() => import('./screens/Login').then((m) => ({ default: m.Login })))
 const Welcome = lazy(() => import('./screens/Welcome').then((m) => ({ default: m.Welcome })))
 const Home = lazy(() => import('./screens/Home').then((m) => ({ default: m.Home })))
-const ComingSoon = lazy(() => import('./screens/ComingSoon').then((m) => ({ default: m.ComingSoon })))
 
 // Moving
 const MovingModule = lazy(() => import('./screens/modules/MovingModule').then((m) => ({ default: m.MovingModule })))
@@ -33,6 +32,10 @@ const ExpenseDetail = lazy(() => import('./screens/ExpenseDetail').then((m) => (
 // Weekend
 const WeekendModule = lazy(() => import('./screens/modules/WeekendModule').then((m) => ({ default: m.WeekendModule })))
 const Weekend = lazy(() => import('./screens/weekend/Weekend').then((m) => ({ default: m.Weekend })))
+
+// Flights
+const FlightsModule = lazy(() => import('./screens/modules/FlightsModule').then((m) => ({ default: m.FlightsModule })))
+const Flights = lazy(() => import('./screens/flights/Flights').then((m) => ({ default: m.Flights })))
 
 const PublicPage = lazy(() => import('./screens/PublicPage').then((m) => ({ default: m.PublicPage })))
 
@@ -122,7 +125,9 @@ export default function App() {
           <Route element={<WeekendModule />}>
             <Route path="/hetvege" element={<Weekend />} />
           </Route>
-          <Route path="/repjegy" element={<ComingSoon title="Repjegy" />} />
+          <Route element={<FlightsModule />}>
+            <Route path="/repjegy" element={<Flights />} />
+          </Route>
 
           <Route element={<MovingModule />}>
             <Route path="/koltozes" element={<MovingOverview />} />
