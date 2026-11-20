@@ -81,21 +81,22 @@ export function easter(Y: number): string {
   return iso(new Date(Date.UTC(Y, mo - 1, day)))
 }
 
-// Spanish national and Catalan holidays, plus La Mercè: the family's calendar.
+// Spanish national and Catalan holidays, plus La Merced: the family's calendar.
+// Named in Spanish, as they appear on the family's own calendar.
 const ES_FIXED: [string, string][] = [
-  ['01-01', 'Újév'],
-  ['01-06', 'Vízkereszt'],
-  ['05-01', 'Munka ünnepe'],
-  ['06-24', 'Sant Joan'],
-  ['08-15', 'Nagyboldogasszony'],
-  ['09-11', 'Diada'],
-  ['09-24', 'La Mercè'],
-  ['10-12', 'Hispanidad'],
-  ['11-01', 'Mindenszentek'],
-  ['12-06', 'Alkotmány napja'],
-  ['12-08', 'Szeplőtelen fogantatás'],
-  ['12-25', 'Karácsony'],
-  ['12-26', 'Sant Esteve'],
+  ['01-01', 'Año Nuevo'],
+  ['01-06', 'Reyes'],
+  ['05-01', 'Día del Trabajador'],
+  ['06-24', 'San Juan'],
+  ['08-15', 'Asunción'],
+  ['09-11', 'Diada de Cataluña'],
+  ['09-24', 'La Merced'],
+  ['10-12', 'Fiesta Nacional'],
+  ['11-01', 'Todos los Santos'],
+  ['12-06', 'Día de la Constitución'],
+  ['12-08', 'Inmaculada Concepción'],
+  ['12-25', 'Navidad'],
+  ['12-26', 'San Esteban'],
 ]
 // Hungarian public holidays: the grandparents' work calendar. Bridge days are
 // set each year by decree; Tue/Thu holidays usually get one.
@@ -118,8 +119,8 @@ export function holidaysES(Y: number): Record<string, string> {
   m = {}
   for (const [md, n] of ES_FIXED) m[`${Y}-${md}`] = n
   const e = easter(Y)
-  m[shift(e, -2)] = 'Nagypéntek'
-  m[shift(e, 1)] = 'Húsvéthétfő'
+  m[shift(e, -2)] = 'Viernes Santo'
+  m[shift(e, 1)] = 'Lunes de Pascua'
   esCache.set(Y, m)
   return m
 }
@@ -254,8 +255,18 @@ export const totalIsEstimate = (t: Trip) => !(t.partyPriceCents && t.partyPriceC
 // Family trips over 16 days and grandparent visits over 10 days are ignored.
 export const tooLong = (t: Trip) => daysBetween(t.outDate, t.retDate) > (isGp(t) ? 10 : 16)
 
-export const isWeekendTrip = (t: Pick<Trip, 'outDate' | 'retDate'>) =>
-  (weekday(t.outDate) === 5 || weekday(t.outDate) === 6) && weekday(t.retDate) === 0 && daysBetween(t.outDate, t.retDate) <= 2
+// A grandparents' weekend visit worth sniping: at least two nights around one
+// ordinary weekend. In on Thursday, Friday or Saturday, home on Sunday or
+// Monday, 2 to 4 nights: Fri→Sun, Sat→Mon, Fri→Mon, Thu→Sun, Thu→Mon.
+// A Saturday-evening-in, Sunday-dawn-out hop (one night) does not count.
+export const SNIPER_MIN_NIGHTS = 2
+
+export const isWeekendTrip = (t: Pick<Trip, 'outDate' | 'retDate'>) => {
+  const out = weekday(t.outDate)
+  const ret = weekday(t.retDate)
+  const nights = daysBetween(t.outDate, t.retDate)
+  return (out === 4 || out === 5 || out === 6) && (ret === 0 || ret === 1) && nights >= SNIPER_MIN_NIGHTS && nights <= 4
+}
 
 // --- Watch windows ------------------------------------------------------------------------
 export type WindowKey = 'next4' | 'christmas' | 'easter' | 'summer'
@@ -498,8 +509,8 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
     grandparents.push({
       key: 'gp-sniper',
       name: 'Hétvégi mesterlövész',
-      note: 'bármely sima hétvége · −25%-nál jelez',
-      targets: ['Érkezés: péntek bármikor, vagy szombat', 'Haza: vasárnap'],
+      note: 'bármely sima hétvége · legalább 2 éjszaka · −25%-nál jelez',
+      targets: ['Érkezés: csütörtök, péntek vagy szombat', 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
       avgCents: sa.avg,
       avgAdultCents: saA,
       n: sa.n,
@@ -577,14 +588,22 @@ export function ryanairUrl(from: string, to: string, out: string, back: string |
 export const wizzUrl = (from: string, to: string, out: string, back: string | null, a: number, c: number) =>
   `https://wizzair.com/en-gb/booking/select-flight/${from}/${to}/${out}/${back ?? 'null'}/${a}/${c}/0/null`
 
-export const googleFlightsUrl = (from: string, to: string, out: string, back: string | null) =>
-  'https://www.google.com/travel/flights?q=' +
-  encodeURIComponent(`Flights from ${from} to ${to} on ${out}${back ? ' returning ' + back : ''} nonstop`)
+// Every carrier on the same dates, with the whole party, nonstop only, cheapest
+// first. Kayak takes route, dates and passengers in the path, so the search
+// opens filled in. It needs a child's age, not just a count; both airlines
+// charge children from 2 a full seat, so a placeholder age of 5 prices them
+// correctly without the real ages living in the code (PRIV-01).
+const CHILD_AGE_FOR_PRICING = 5
+
+export function kayakUrl(from: string, to: string, out: string, back: string | null, a: number, c: number): string {
+  const kids = c > 0 ? `/children-${Array.from({ length: c }, () => CHILD_AGE_FOR_PRICING).join('-')}` : ''
+  return `https://www.kayak.com/flights/${from}-${to}/${out}${back ? '/' + back : ''}/${a}adults${kids}?sort=price_a&fs=stops=0`
+}
 
 function carrierUrl(carrier: string, from: string, to: string, out: string, back: string | null, a: number, c: number) {
   if (/ryanair/i.test(carrier)) return ryanairUrl(from, to, out, back, a, c)
   if (/wizz/i.test(carrier)) return wizzUrl(from, to, out, back, a, c)
-  return googleFlightsUrl(from, to, out, back)
+  return kayakUrl(from, to, out, back, a, c)
 }
 
 export interface BookingLink {
@@ -602,7 +621,7 @@ export function bookingLinks(t: Trip, s: FareSettings): BookingLink[] {
     links.push({ label: `Oda: ${t.outCarrier}`, href: carrierUrl(t.outCarrier, a, b, t.outDate, null, p.adults, p.children) })
     links.push({ label: `Vissza: ${t.retCarrier}`, href: carrierUrl(t.retCarrier, b, a, t.retDate, null, p.adults, p.children) })
   }
-  links.push({ label: 'Összevetés', href: googleFlightsUrl(a, b, t.outDate, t.retDate) })
+  links.push({ label: 'Kayak: minden ár', href: kayakUrl(a, b, t.outDate, t.retDate, p.adults, p.children) })
   return links
 }
 
@@ -627,8 +646,13 @@ export function checkTripDates(party: Party, out: string, ret: string, today: st
   const probe = { id: '', party, outDate: out, retDate: ret } as Trip
   if (party === 'grandparents') {
     const LW = gpWeekends(today, shift(today, 330))
-    if (!LW.some((l) => gpMatches(probe, l)))
-      msgs.push('Ezek a dátumok nem illeszkednek magyar hosszú hétvégéhez; egyéb dátumként kerül a naplóba.')
+    if (!LW.some((l) => gpMatches(probe, l))) {
+      if (isWeekendTrip(probe)) {
+        // a proper sniper weekend: nothing to warn about
+      } else if (daysBetween(out, ret) < SNIPER_MIN_NIGHTS && [5, 6].includes(weekday(out)))
+        msgs.push('Egy éjszakás hétvégi út: a mesterlövész legalább 2 éjszakát vár, ezért egyéb dátumként kerül a naplóba.')
+      else msgs.push('Ezek a dátumok nem illeszkednek se magyar hosszú hétvégéhez, se 2 éjszakás hétvégéhez; egyéb dátumként kerül a naplóba.')
+    }
   } else {
     const c = W.find((w) => w.key === 'summer')!.camp!
     const Y = c.start.slice(0, 4)
