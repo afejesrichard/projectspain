@@ -145,15 +145,15 @@ describe('projectionRange', () => {
 
 describe('money in and out', () => {
   it('formats cents the Hungarian way', () => {
-    expect(fmtEur(133573)).toBe('1 335,73 €')
-    expect(fmtEur(-2568)).toBe('−25,68 €')
-    expect(fmtEur(431232, { whole: true })).toBe('4 312 €')
+    expect(fmtEur(123456)).toBe('1\u202f234,56 €')
+    expect(fmtEur(-4321)).toBe('−43,21 €')
+    expect(fmtEur(987654, { whole: true })).toBe('9\u202f877 €')
     expect(fmtEur(5)).toBe('0,05 €')
   })
 
   it('parses typed amounts to integer cents without floats', () => {
-    expect(parseEurInput('1335,73')).toBe(133573)
-    expect(parseEurInput('1 335.73')).toBe(133573)
+    expect(parseEurInput('1234,56')).toBe(123456)
+    expect(parseEurInput('1 234.56')).toBe(123456)
     expect(parseEurInput('90')).toBe(9000)
     expect(parseEurInput('90,5')).toBe(9050)
     expect(parseEurInput('€ 12')).toBe(1200)

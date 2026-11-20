@@ -212,7 +212,7 @@ export function projectionRange(
 
 // --- Formatting and input ----------------------------------------------------
 
-// 1 335,73 € (hu-HU style; a narrow no-break space groups thousands).
+// 1 234,56 € (hu-HU style; a narrow no-break space groups thousands).
 export function fmtEur(cents: number, opts: { whole?: boolean } = {}): string {
   const neg = cents < 0
   const abs = Math.abs(Math.round(cents))
@@ -229,7 +229,7 @@ function group(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }
 
-// Accepts what people type: "1335,73", "1 335.73", "90", "90,5", "€ 12".
+// Accepts what people type: "1234,56", "1 234.56", "90", "90,5", "€ 12".
 // Returns integer cents, or null when it is not an amount. No float maths.
 export function parseEurInput(text: string): number | null {
   const s = text.replace(/[€\s  ]/g, '')
