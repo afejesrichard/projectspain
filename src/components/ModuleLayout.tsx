@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { color } from '../theme'
 import type { ModuleLifecycle } from '../lib/moduleLifecycle'
@@ -46,10 +46,23 @@ export function ModuleLayout({ id, lifecycle }: { id: ModuleId; lifecycle?: Modu
           ))}
         </nav>
       )}
-      {/* Keyed so a detail screen opened from another detail starts fresh. */}
-      <Outlet key={location.pathname} />
+      <Outlet />
     </>
   )
+}
+
+// Holds a lifecycle for a group of routes inside a module, when parts of the
+// module need different data (Budget: month figures vs the receipts list).
+// Moving between routes in the group keeps it held.
+export function Hold({ lifecycle }: { lifecycle: ModuleLifecycle }) {
+  useEffect(() => lifecycle.acquire(), [lifecycle])
+  return <Outlet />
+}
+
+// A detail screen opened from another detail screen (item → box → item)
+// starts with fresh state rather than the previous one's.
+export function Keyed({ children }: { children: React.ReactNode }) {
+  return <Fragment key={useLocation().pathname}>{children}</Fragment>
 }
 
 function tabStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
