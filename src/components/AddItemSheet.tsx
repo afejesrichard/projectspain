@@ -4,6 +4,10 @@ import { useMoving } from '../stores/moving'
 import { useIsDesktop } from '../hooks/useMedia'
 import { PhotoUploader } from './PhotoUploader'
 import type { ItemStatus } from '../types'
+import { helpFor } from './Help'
+import { movingHelp } from '../help/moving'
+
+const MovingHelp = helpFor(movingHelp)
 
 export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const isDesktop = useIsDesktop()
@@ -198,9 +202,8 @@ export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => 
 
           {publishable && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>Megjelenítés a publikus oldalon</div>
-                <div style={{ fontSize: 12.5, color: color.softInk }}>A link birtokában bárki láthatja.</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500 }}>
+                Megjelenítés a publikus oldalon <MovingHelp id="item.publish" />
               </div>
               <Toggle on={published} onClick={() => setPublished((v) => !v)} />
             </div>

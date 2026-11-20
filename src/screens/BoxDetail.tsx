@@ -7,6 +7,11 @@ import { Lightbox } from '../components/Lightbox'
 import { Toggle } from '../components/AddItemSheet'
 import { PhotoPlaceholder } from '../components/primitives'
 import { IconArrowLeft, IconCheck, IconPencil } from '../components/icons'
+import { useIsDesktop } from '../hooks/useMedia'
+import { helpFor } from '../components/Help'
+import { movingHelp } from '../help/moving'
+
+const MovingHelp = helpFor(movingHelp)
 
 export function BoxDetail() {
   const { id } = useParams()
@@ -189,6 +194,7 @@ export function BoxDetail() {
             >
               <IconPencil size={14} />
             </button>
+            <MovingHelp id="box.number" />
           </span>
         )}
         {/* An unpacked box's stamp wins — it was opened, sealing is history. */}
@@ -229,11 +235,8 @@ export function BoxDetail() {
         </span>
       </div>
 
-      {editingNumber && (
-        <div style={{ marginTop: -12, marginBottom: 20, fontSize: 13, color: numberError ? color.throw : color.softInk }}>
-          {numberError ??
-            'Írd át a számot arra, ami a dobozon szerepel — a benne lévő tárgyak követik.'}
-        </div>
+      {editingNumber && numberError && (
+        <div style={{ marginTop: -12, marginBottom: 20, fontSize: 13, color: color.throw }}>{numberError}</div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -308,21 +311,23 @@ export function BoxDetail() {
 
         {/* sealed */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18 }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 500 }}>Lezárva</div>
-            <div style={{ fontSize: 12.5, color: color.softInk }}>Leragasztva, több nem kerül bele.</div>
-          </div>
+          <ToggleLabel>
+            Lezárva <MovingHelp id="box.sealed" />
+          </ToggleLabel>
           <Toggle on={box.sealed} onClick={() => updateBox(box.id, { sealed: !box.sealed })} />
         </div>
 
         {/* unpacked — the packing-out signal */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18 }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 500 }}>Kicsomagolva</div>
-            <div style={{ fontSize: 12.5, color: color.softInk }}>
-              Az új helyen minden kikerült belőle.
-              {box.unpackedAt && ` (${new Date(box.unpackedAt).toLocaleDateString('hu-HU')})`}
-            </div>
+            <ToggleLabel>
+              Kicsomagolva <MovingHelp id="box.unpacked" />
+            </ToggleLabel>
+            {box.unpackedAt && (
+              <div style={{ fontFamily: font.mono, fontSize: 12, color: color.softInk }}>
+                {new Date(box.unpackedAt).toLocaleDateString('hu-HU')}
+              </div>
+            )}
           </div>
           <Toggle
             on={!!box.unpackedAt}
@@ -334,11 +339,11 @@ export function BoxDetail() {
 
         {/* packed items */}
         <div>
-          <FieldLabel>Becsomagolt tárgyak</FieldLabel>
+          <FieldLabel>
+            Becsomagolt tárgyak <MovingHelp id="box.items" />
+          </FieldLabel>
           {packed.length === 0 ? (
-            <div style={{ fontSize: 13.5, color: color.faintInk }}>
-              Még nincs tárgy ebben a dobozban. A leltárban egy Visszük tárgy adatlapján tudod ide tenni.
-            </div>
+            <div style={{ fontSize: 13.5, color: color.faintInk }}>Még nincs tárgy ebben a dobozban.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {packed.map((it) => (
@@ -502,6 +507,8 @@ export function BoxDetail() {
 }
 
 function BackButton({ onClick }: { onClick: () => void }) {
+  // On a phone the top bar's back arrow does this job.
+  if (!useIsDesktop()) return null
   return (
     <button
       onClick={onClick}
@@ -534,11 +541,18 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
         textTransform: 'uppercase',
         color: color.softInk,
         marginBottom: 9,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
       }}
     >
       {children}
     </div>
   )
+}
+
+function ToggleLabel({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500 }}>{children}</div>
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -9,6 +9,11 @@ import { Lightbox } from '../components/Lightbox'
 import { NoteThread } from '../components/NoteThread'
 import { IconArrowLeft } from '../components/icons'
 import type { ItemStatus } from '../types'
+import { useIsDesktop } from '../hooks/useMedia'
+import { helpFor } from '../components/Help'
+import { movingHelp } from '../help/moving'
+
+const MovingHelp = helpFor(movingHelp)
 
 const STATUS: [ItemStatus, string][] = [
   ['available', 'Elérhető'],
@@ -244,9 +249,8 @@ export function ItemDetail() {
         {/* publish */}
         {publishable && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderTop: `1px solid ${color.hairlineSoft}`, paddingTop: 18 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>Megjelenítés a publikus oldalon</div>
-              <div style={{ fontSize: 12.5, color: color.softInk }}>A link birtokában bárki láthatja ezt a tárgyat.</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500 }}>
+              Megjelenítés a publikus oldalon <MovingHelp id="item.publish" />
             </div>
             <Toggle on={item.published} onClick={() => togglePublished(item.id)} />
           </div>
@@ -330,7 +334,9 @@ function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) 
 
   return (
     <div>
-      <FieldLabel>Doboz</FieldLabel>
+      <FieldLabel>
+        Doboz <MovingHelp id="item.box" />
+      </FieldLabel>
       {boxes.length === 0 ? (
         <div style={{ fontSize: 13.5, color: color.faintInk }}>
           Még nincs doboz —{' '}
@@ -338,7 +344,7 @@ function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) 
             onClick={() => navigate('/dobozok')}
             style={{ border: 'none', background: 'transparent', color: color.keep, cursor: 'pointer', padding: 0, fontSize: 13.5 }}
           >
-            hozz létre egyet a Dobozok fülön
+            hozz létre egyet a Dobozok nézetben
           </button>
           .
         </div>
@@ -349,7 +355,7 @@ function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) 
             onClick={() => navigate('/dobozok')}
             style={{ border: 'none', background: 'transparent', color: color.keep, cursor: 'pointer', padding: 0, fontSize: 13.5 }}
           >
-            nyiss ki vagy hozz létre egyet a Dobozok fülön
+            nyiss ki vagy hozz létre egyet a Dobozok nézetben
           </button>
           .
         </div>
@@ -380,6 +386,8 @@ function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) 
 }
 
 function BackButton({ onClick }: { onClick: () => void }) {
+  // On a phone the top bar's back arrow does this job.
+  if (!useIsDesktop()) return null
   return (
     <button
       onClick={onClick}
@@ -412,6 +420,9 @@ function FieldLabel({ children, inline }: { children: React.ReactNode; inline?: 
         textTransform: 'uppercase',
         color: color.softInk,
         marginBottom: inline ? 0 : 9,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
       }}
     >
       {children}
