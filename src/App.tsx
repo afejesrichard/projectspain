@@ -30,6 +30,10 @@ const BudgetLines = lazy(() => import('./screens/budget/BudgetLines').then((m) =
 const Expenses = lazy(() => import('./screens/Expenses').then((m) => ({ default: m.Expenses })))
 const ExpenseDetail = lazy(() => import('./screens/ExpenseDetail').then((m) => ({ default: m.ExpenseDetail })))
 
+// Weekend
+const WeekendModule = lazy(() => import('./screens/modules/WeekendModule').then((m) => ({ default: m.WeekendModule })))
+const Weekend = lazy(() => import('./screens/weekend/Weekend').then((m) => ({ default: m.Weekend })))
+
 const PublicPage = lazy(() => import('./screens/PublicPage').then((m) => ({ default: m.PublicPage })))
 
 function Splash() {
@@ -115,7 +119,9 @@ export default function App() {
             </Route>
           </Route>
 
-          <Route path="/hetvege" element={<ComingSoon title="Hétvége" />} />
+          <Route element={<WeekendModule />}>
+            <Route path="/hetvege" element={<Weekend />} />
+          </Route>
           <Route path="/repjegy" element={<ComingSoon title="Repjegy" />} />
 
           <Route element={<MovingModule />}>

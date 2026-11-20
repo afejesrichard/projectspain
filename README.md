@@ -48,7 +48,7 @@ sunset; their database tables remain but the app no longer uses them.)
 | `#/koltsegvetes/sorok` | Budget lines: amounts, projection model, net pay and rate; start the next month |
 | `#/koltsegvetes/nyugtak` | Receipts: XML import, list, export (see `docs/expenses-format.md`) |
 | `#/koltsegvetes/nyugtak/:id` | Receipt detail |
-| `#/hetvege` | Weekend (placeholder until its phase ships) |
+| `#/hetvege` | Weekend: this weekend's family programs and warnings, written by the Thursday scan |
 | `#/repjegy` | Flights (placeholder until its phase ships) |
 | `#/koltozes` | Moving overview (the former dashboard) |
 | `#/leltar` | Inventory grid (filters + search) |
