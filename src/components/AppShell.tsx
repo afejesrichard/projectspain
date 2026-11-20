@@ -11,6 +11,7 @@ import type { HelpEntry } from '../help/types'
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
+import { startServiceWorker } from '../lib/pwa'
 import { personName } from '../lib/people'
 
 // --- Acting-as switch: not a security control, just whose name goes on a
@@ -314,6 +315,9 @@ export function AppShell() {
 
   // Any navigation, including one from inside the drawer, closes it.
   useEffect(() => setDrawerOpen(false), [pathname])
+
+  // Signed in: precache the app shell for instant repeat opens and install.
+  useEffect(() => startServiceWorker(), [])
 
   const openGuide = useCallback((m: ModuleDef) => {
     setDrawerOpen(false)
