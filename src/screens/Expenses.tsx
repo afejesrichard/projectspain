@@ -15,6 +15,10 @@ import {
   type ReceiptRecord,
 } from '../lib/expenses'
 import { fetchReceiptRawsInRange } from '../data/repo'
+import { helpFor } from '../components/Help'
+import { budgetHelp } from '../help/budget'
+
+const BudgetHelp = helpFor(budgetHelp)
 
 export const APP_GENERATOR = 'project-spain/0.1.0'
 
@@ -308,8 +312,9 @@ export function Expenses() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: font.display, fontWeight: 700, fontSize: 26, margin: 0, letterSpacing: '-0.01em' }}>
-          Kiadások
+          Nyugták
         </h1>
+        <BudgetHelp id="receipts.list" />
         <span style={{ fontFamily: font.mono, fontSize: 13, color: color.softInk }}>
           {filtered.length} nyugta
           {sums.length > 0 && (
@@ -356,8 +361,8 @@ export function Expenses() {
             marginBottom: 18,
           }}
         >
-          <div style={{ fontFamily: font.display, fontWeight: 600, fontSize: 16, marginBottom: 10 }}>
-            Nyugta XML importálása
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: font.display, fontWeight: 600, fontSize: 16, marginBottom: 10 }}>
+            Nyugta XML importálása <BudgetHelp id="receipts.import" />
           </div>
           <input
             ref={fileRef}

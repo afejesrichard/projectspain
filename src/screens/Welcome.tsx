@@ -1,6 +1,8 @@
 import { color, font } from '../theme'
 import { useSession } from '../stores/session'
 import type { Person } from '../types'
+import { Help } from '../components/Help'
+import { appHelp } from '../help/app'
 
 // One-time (per device) identity choice after the first login. Not a security
 // control — it decides whose name goes on proposals and whose sign-off an
@@ -48,12 +50,12 @@ export function Welcome() {
         <div style={{ fontFamily: font.mono, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: color.softInk }}>
           Project Spain
         </div>
-        <h1 style={{ fontFamily: font.display, fontWeight: 700, fontSize: 34, letterSpacing: '-0.02em', margin: '10px 0 8px' }}>
-          Ki vagy?
-        </h1>
-        <p style={{ fontSize: 14.5, color: color.mutedInk, margin: '0 0 26px', lineHeight: 1.5 }}>
-          Ez az eszköz mostantól a te nevedben javasol és hagy jóvá. Később bármikor átválthatsz a fejlécben.
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0 26px' }}>
+          <h1 style={{ fontFamily: font.display, fontWeight: 700, fontSize: 34, letterSpacing: '-0.02em', margin: 0 }}>
+            Ki vagy?
+          </h1>
+          <Help entry={appHelp['welcome.identity']} />
+        </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {choice('Dorka', 'Dorka')}
           {choice('Richard', 'Ricsi')}

@@ -42,3 +42,14 @@ Rules that must survive any later rewrite. Each is marked in code with a
   computed on the device or cached by the module on its last visit. Enforced in
   `src/lib/moduleLifecycle.ts`, `src/components/ModuleLayout.tsx` and
   `src/screens/Home.tsx`.
+
+## Help
+
+- **INVARIANT [HELP-01]** — no explanatory prose on a screen outside a help
+  surface. A screen shows labels, numbers, state and controls. Any sentence
+  that explains how to read something, or why, opens from a `<Help>` button
+  beside its section title (at most one per section) or from the module's
+  guide. Still allowed inline: a one-line empty state, an error or status
+  line, a destructive-action confirmation, a chart legend. Help text lives in
+  `src/help/<module>.ts`, keyed by id, and ships in that module's chunk.
+  Enforced in `src/components/Help.tsx`.

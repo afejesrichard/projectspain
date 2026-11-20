@@ -2,6 +2,8 @@
 // Everything that decides "which module am I in" or "where does back go" reads
 // this list, so a new module is one entry here plus its routes in App.tsx.
 
+import type { HelpEntry } from './help/types'
+
 export type ModuleId = 'budget' | 'weekend' | 'flights' | 'moving'
 
 export interface ModuleView {
@@ -18,6 +20,9 @@ export interface ModuleDef {
   prefixes: string[]
   // Views inside the module, shown as tabs and in the navigation.
   views?: ModuleView[]
+  // The module's long-form guide, fetched with the module's help chunk only
+  // when someone opens it.
+  guide?: () => Promise<HelpEntry>
 }
 
 export const MODULES: ModuleDef[] = [
@@ -27,6 +32,7 @@ export const MODULES: ModuleDef[] = [
     path: '/koltsegvetes',
     prefixes: ['/koltsegvetes'],
     views: [{ to: '/koltsegvetes/nyugtak', label: 'Nyugták' }],
+    guide: () => import('./help/budget').then((m) => m.budgetHelp.guide),
   },
   { id: 'weekend', title: 'Hétvége', path: '/hetvege', prefixes: ['/hetvege'] },
   { id: 'flights', title: 'Repjegy', path: '/repjegy', prefixes: ['/repjegy'] },
@@ -40,6 +46,7 @@ export const MODULES: ModuleDef[] = [
       { to: '/leltar', label: 'Leltár' },
       { to: '/dobozok', label: 'Dobozok' },
     ],
+    guide: () => import('./help/moving').then((m) => m.movingHelp.guide),
   },
 ]
 

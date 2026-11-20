@@ -1,11 +1,13 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { color, font } from '../theme'
 import { useSession } from '../stores/session'
 import { useIsDesktop } from '../hooks/useMedia'
-import { IconCopy, IconCheck, IconArrowLeft, IconMenu, IconClose, IconHome, IconLogout } from './icons'
+import { IconCopy, IconCheck, IconArrowLeft, IconMenu, IconClose, IconHome, IconLogout, IconGuide } from './icons'
 import { ModuleIcon } from './ModuleIcon'
-import { MODULES, moduleFor, parentOf } from '../modules'
+import { MODULES, moduleFor, parentOf, type ModuleDef } from '../modules'
+import { HelpSurface } from './Help'
+import type { HelpEntry } from '../help/types'
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
@@ -95,8 +97,10 @@ function LogoutButton() {
   )
 }
 
-// The module list, shared by the desktop sidebar and the phone drawer.
-function ModuleNav() {
+// The module list, shared by the desktop sidebar and the phone drawer. The
+// current module's guide, if it has one, sits under its views.
+function ModuleNav({ onGuide }: { onGuide: (m: ModuleDef) => void }) {
+  const current = moduleFor(useLocation().pathname)
   return (
     <nav aria-label="Modulok" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <NavLink to="/" end style={navStyle}>
@@ -118,6 +122,15 @@ function ModuleNav() {
                   {v.label}
                 </NavLink>
               ))}
+            {m.guide && current?.id === m.id && (
+              <button
+                type="button"
+                onClick={() => onGuide(m)}
+                style={{ ...subNavStyle({ isActive: false }), border: 'none', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Útmutató
+              </button>
+            )}
           </div>
         )
       })}
@@ -160,7 +173,7 @@ function Brand() {
   )
 }
 
-function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+function Drawer({ open, onClose, onGuide }: { open: boolean; onClose: () => void; onGuide: (m: ModuleDef) => void }) {
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -203,7 +216,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             <IconClose />
           </button>
         </div>
-        <ModuleNav />
+        <ModuleNav onGuide={onGuide} />
         <ShellFooter />
       </div>
     </div>
@@ -224,7 +237,7 @@ const iconButton: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-function TopBar({ onMenu }: { onMenu: () => void }) {
+function TopBar({ onMenu, onGuide }: { onMenu: () => void; onGuide: (m: ModuleDef) => void }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const mod = moduleFor(pathname)
@@ -279,9 +292,16 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           </span>
         )}
       </div>
-      <button onClick={onMenu} aria-label="Menü" style={{ ...iconButton, marginLeft: 'auto' }}>
-        <IconMenu />
-      </button>
+      <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 18 }}>
+        {mod?.guide && (
+          <button onClick={() => onGuide(mod)} aria-label={`${mod.title}: útmutató`} style={iconButton}>
+            <IconGuide />
+          </button>
+        )}
+        <button onClick={onMenu} aria-label="Menü" style={iconButton}>
+          <IconMenu />
+        </button>
+      </span>
     </header>
   )
 }
@@ -290,9 +310,18 @@ export function AppShell() {
   const isDesktop = useIsDesktop()
   const { pathname } = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [guide, setGuide] = useState<HelpEntry | null>(null)
 
   // Any navigation, including one from inside the drawer, closes it.
   useEffect(() => setDrawerOpen(false), [pathname])
+
+  const openGuide = useCallback((m: ModuleDef) => {
+    setDrawerOpen(false)
+    m.guide?.().then(setGuide, () => {
+      /* chunk failed to load (offline): nothing to show */
+    })
+  }, [])
+  const closeGuide = useCallback(() => setGuide(null), [])
 
   const contentPad = isDesktop ? '30px 34px 48px' : '18px 16px calc(28px + env(safe-area-inset-bottom))'
 
@@ -324,13 +353,13 @@ export function AppShell() {
           }}
         >
           <Brand />
-          <ModuleNav />
+          <ModuleNav onGuide={openGuide} />
           <ShellFooter />
         </aside>
       )}
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        {!isDesktop && <TopBar onMenu={() => setDrawerOpen(true)} />}
+        {!isDesktop && <TopBar onMenu={() => setDrawerOpen(true)} onGuide={openGuide} />}
         <div style={{ flex: 1, padding: contentPad, maxWidth: 1180, width: '100%', margin: '0 auto' }}>
           {/* The shell stays put while a module's chunk arrives. */}
           <Suspense fallback={null}>
@@ -339,7 +368,8 @@ export function AppShell() {
         </div>
       </main>
 
-      {!isDesktop && <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />}
+      {!isDesktop && <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onGuide={openGuide} />}
+      {guide && <HelpSurface entry={guide} onClose={closeGuide} />}
     </div>
   )
 }

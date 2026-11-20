@@ -247,3 +247,13 @@ export function IconLogout({ size = 15, style, strokeWidth = 1.6 }: IconProps) {
     </svg>
   )
 }
+
+// An open book: a module's guide.
+export function IconGuide({ size = 20, style, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M12 6.5C10.5 5.2 8.3 4.5 4 4.5v13c4.3 0 6.5.7 8 2 1.5-1.3 3.7-2 8-2v-13c-4.3 0-6.5.7-8 2Z" />
+      <path d="M12 6.5v13" />
+    </svg>
+  )
+}

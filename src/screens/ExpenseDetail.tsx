@@ -7,6 +7,11 @@ import { IconArrowLeft } from '../components/icons'
 import { fetchReceiptRaw } from '../data/repo'
 import { Badge, CONFIDENCE_TONE, SOURCE_TONE, fmtLocalDate } from './Expenses'
 import { formatCents } from '../lib/expenses'
+import { useIsDesktop } from '../hooks/useMedia'
+import { helpFor } from '../components/Help'
+import { budgetHelp } from '../help/budget'
+
+const BudgetHelp = helpFor(budgetHelp)
 
 // Read-only view over the stored element. The DOM built here is for DISPLAY
 // only — the stored raw_xml is never touched, re-serialised or written back.
@@ -72,9 +77,10 @@ export function ExpenseDetail() {
         <span style={{ fontFamily: font.mono, fontSize: 20, fontWeight: 700 }}>
           {formatCents(receipt.totalCents)} {receipt.currency}
         </span>
-        <span style={{ display: 'flex', gap: 5 }}>
+        <span style={{ display: 'flex', gap: 5, alignItems: 'center', alignSelf: 'center' }}>
           <Badge value={receipt.source} tone={SOURCE_TONE[receipt.source]} />
           <Badge value={receipt.confidence} tone={CONFIDENCE_TONE[receipt.confidence]} />
+          <BudgetHelp id="receipt.badges" />
         </span>
       </div>
       <div style={{ fontFamily: font.mono, fontSize: 12, color: color.softInk, marginTop: 4 }}>
@@ -92,7 +98,9 @@ export function ExpenseDetail() {
             fontSize: 13,
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Importáláskor rögzített figyelmeztetések</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, marginBottom: 4 }}>
+            Importáláskor rögzített figyelmeztetések <BudgetHelp id="receipt.warnings" />
+          </div>
           {receipt.warnings.map((w, i) => (
             <div key={i} style={{ color: color.mutedInk, marginTop: 3 }}>⚠ {w.message}</div>
           ))}
@@ -342,6 +350,8 @@ function Line({ label, value, mono, strong }: { label: string; value: string; mo
 }
 
 function BackLink({ onClick }: { onClick: () => void }) {
+  // On a phone the top bar's back arrow does this job.
+  if (!useIsDesktop()) return null
   return (
     <button
       onClick={onClick}
