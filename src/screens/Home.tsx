@@ -4,12 +4,21 @@ import { MODULES, type ModuleId } from '../modules'
 import { ModuleIcon } from '../components/ModuleIcon'
 import { readTile } from '../lib/tileCache'
 import { useIsDesktop } from '../hooks/useMedia'
+import { fmtEur } from '../lib/budget'
+
+const DOT_COLOR = {
+  live: color.sell,
+  good: color.sell,
+  warn: color.give,
+  bad: color.throw,
+  idle: color.faintInk,
+} as const
 
 // INVARIANT [LOAD-01] — home asks the database nothing. Each tile paints from
 // figures computed on the device or cached by the module on its last visit;
 // tapping a tile is the only thing that loads a module.
 
-type Dot = 'live' | 'idle'
+type Dot = 'live' | 'idle' | 'good' | 'warn' | 'bad'
 
 interface TileContent {
   figure: string
@@ -44,13 +53,14 @@ function fmtRange(from: Date, to: Date): string {
 
 function tileContent(id: ModuleId, today: Date): TileContent {
   if (id === 'budget') {
+    const day = `${today.getDate()}. nap / ${daysInMonth(today)}`
+    const b = readTile('budget')
+    if (b && b.month === `${monthKey(today)}-01`) {
+      return { figure: `${fmtEur(b.spentCents, { whole: true })} / ${fmtEur(b.budgetCents, { whole: true })}`, sub: day, dot: b.verdict }
+    }
     const cached = readTile('receipts')
     const count = cached && cached.month === monthKey(today) ? cached.count : null
-    return {
-      figure: `${today.getDate()}. nap / ${daysInMonth(today)}`,
-      sub: count == null ? 'Nyugták' : `${count} nyugta ebben a hónapban`,
-      dot: 'live',
-    }
+    return { figure: day, sub: count == null ? 'Nyugták' : `${count} nyugta ebben a hónapban`, dot: 'live' }
   }
   if (id === 'weekend') {
     const { from, to } = weekendOf(today)
@@ -114,7 +124,7 @@ export function Home() {
                   width: 8,
                   height: 8,
                   borderRadius: 4,
-                  background: t.dot === 'live' ? color.sell : color.faintInk,
+                  background: DOT_COLOR[t.dot],
                 }}
               />
               <span

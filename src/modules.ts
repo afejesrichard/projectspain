@@ -31,7 +31,11 @@ export const MODULES: ModuleDef[] = [
     title: 'Költségvetés',
     path: '/koltsegvetes',
     prefixes: ['/koltsegvetes'],
-    views: [{ to: '/koltsegvetes/nyugtak', label: 'Nyugták' }],
+    views: [
+      { to: '/koltsegvetes', label: 'Hónap', end: true },
+      { to: '/koltsegvetes/nyugtak', label: 'Nyugták' },
+      { to: '/koltsegvetes/sorok', label: 'Sorok' },
+    ],
     guide: () => import('./help/budget').then((m) => m.budgetHelp.guide),
   },
   { id: 'weekend', title: 'Hétvége', path: '/hetvege', prefixes: ['/hetvege'] },

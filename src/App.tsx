@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { Keyed } from './components/ModuleLayout'
 import { useSession } from './stores/session'
 import { color, font } from './theme'
 
@@ -22,6 +23,10 @@ const BoxDetail = lazy(() => import('./screens/BoxDetail').then((m) => ({ defaul
 
 // Budget
 const BudgetModule = lazy(() => import('./screens/modules/BudgetModule').then((m) => ({ default: m.BudgetModule })))
+const BudgetHold = lazy(() => import('./screens/modules/BudgetHold').then((m) => ({ default: m.BudgetHold })))
+const ReceiptsHold = lazy(() => import('./screens/modules/ReceiptsHold').then((m) => ({ default: m.ReceiptsHold })))
+const BudgetMonth = lazy(() => import('./screens/budget/BudgetMonth').then((m) => ({ default: m.BudgetMonth })))
+const BudgetLines = lazy(() => import('./screens/budget/BudgetLines').then((m) => ({ default: m.BudgetLines })))
 const Expenses = lazy(() => import('./screens/Expenses').then((m) => ({ default: m.Expenses })))
 const ExpenseDetail = lazy(() => import('./screens/ExpenseDetail').then((m) => ({ default: m.ExpenseDetail })))
 
@@ -91,10 +96,23 @@ export default function App() {
           <Route path="/" element={<Home />} />
 
           <Route element={<BudgetModule />}>
-            {/* The Month view replaces this redirect in the budget phase. */}
-            <Route path="/koltsegvetes" element={<Navigate to="/koltsegvetes/nyugtak" replace />} />
-            <Route path="/koltsegvetes/nyugtak" element={<Expenses />} />
-            <Route path="/koltsegvetes/nyugtak/:id" element={<ExpenseDetail />} />
+            {/* Month and Lines read budget_month(); the receipts views read
+                the receipts list. Each half loads only its own data. */}
+            <Route element={<BudgetHold />}>
+              <Route path="/koltsegvetes" element={<BudgetMonth />} />
+              <Route path="/koltsegvetes/sorok" element={<BudgetLines />} />
+            </Route>
+            <Route element={<ReceiptsHold />}>
+              <Route path="/koltsegvetes/nyugtak" element={<Expenses />} />
+              <Route
+                path="/koltsegvetes/nyugtak/:id"
+                element={
+                  <Keyed>
+                    <ExpenseDetail />
+                  </Keyed>
+                }
+              />
+            </Route>
           </Route>
 
           <Route path="/hetvege" element={<ComingSoon title="Hétvége" />} />
@@ -103,9 +121,23 @@ export default function App() {
           <Route element={<MovingModule />}>
             <Route path="/koltozes" element={<MovingOverview />} />
             <Route path="/leltar" element={<Inventory />} />
-            <Route path="/leltar/:id" element={<ItemDetail />} />
+            <Route
+              path="/leltar/:id"
+              element={
+                <Keyed>
+                  <ItemDetail />
+                </Keyed>
+              }
+            />
             <Route path="/dobozok" element={<Boxes />} />
-            <Route path="/dobozok/:id" element={<BoxDetail />} />
+            <Route
+              path="/dobozok/:id"
+              element={
+                <Keyed>
+                  <BoxDetail />
+                </Keyed>
+              }
+            />
           </Route>
 
           <Route path="/kiadasok" element={<Navigate to="/koltsegvetes/nyugtak" replace />} />

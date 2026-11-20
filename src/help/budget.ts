@@ -1,8 +1,92 @@
 import type { HelpEntry } from './types'
 
-// Help for the Budget module (receipts for now). Ships in the module's chunk.
+// Help for the Budget module. Ships in the module's chunk.
 
 export const budgetHelp = {
+  'month.projection': {
+    title: 'Hogyan számol a várható összeg?',
+    body: [
+      'A „várható hónap végén” azt mutatja, hová jut a hónap, ha a hátralévő napok a terv szerint mennek:',
+      {
+        list: [
+          'A fix és egyenetlen sorok (lakbér, rezsi, egyszeri tételek, menza) a keretük és az eddigi költés közül a nagyobbal zárnak.',
+          'Az előfizetések a terhelés napjától számítanak elköltöttnek, és a hónap végére mind beszámít.',
+          'Az ütemezett mindennapi sorok a hónap saját tempója és a keret tempója közti átlaggal folytatódnak. Minél később járunk a hónapban, annál többet számít a saját tempó.',
+          'Az utazási tartalék a tartalék és a tényleges foglalás közül a nagyobbal zár.',
+        ],
+      },
+      'A „valószínűleg” sáv azt mutatja, mennyit ingadozik a mindennapi költés napról napra ebben a hónapban. Egy hét adat után jelenik meg, és a váratlan egyszeri kiadásokat nem fedi le.',
+      'A szín a nettó fizetéshez mér: zöld, ha alatta marad; sárga, ha száz eurón belül van; piros, ha fölé megy.',
+    ],
+  },
+  'month.left': {
+    title: 'Hátralévő keret',
+    body: ['A teljes havi keret mínusz az eddigi költés, a már terhelt előfizetésekkel együtt. Negatív, ha a hónap már túllépte a keretet.'],
+  },
+  'month.rate': {
+    title: 'Mindennapi napi átlag',
+    body: [
+      'A mindennapi sorok (élelmiszer, háztartás, italok, étterem, gyerekek, közlekedés, szabadidő, gyógyszertár) eddigi költése osztva az eltelt napokkal.',
+      'Mellette az, amennyit a mindennapi keret naponta enged. Pirosra vált, ha az átlag 15%-kal fölötte jár.',
+    ],
+  },
+  'month.subs': {
+    title: 'Előfizetések',
+    body: [
+      'Az előfizetések nem jönnek nyugtaként. Mindegyik a beállított terhelési napjától számít elköltöttnek, a teljes összegével. A szám az eddig terhelteket mutatja, mellette az összes havi előfizetést.',
+    ],
+  },
+  'month.headroom': {
+    title: 'Mozgástér a nettó fizetéshez',
+    body: [
+      'A nettó fizetés mínusz a teljes havi keret, az utazási tartalékkal együtt. Ez a terv mozgástere, nem a tényleges költésé: negatív, ha már maga a keret is több a fizetésnél.',
+    ],
+  },
+  'month.lines': {
+    title: 'Sorok',
+    body: [
+      'Minden sor a havi keretét és az eddig elköltött összeget mutatja. A sáv a felhasználás arányában telik, és pirosra vált, ha a sor túllépte a keretét.',
+      'Egy sorra koppintva látszik, hogyan állt össze a keret, és mely nyugták számítanak bele.',
+      'Hogy egy nyugta tétele melyik sorba kerül, azt a tétel kategóriája dönti el. A forintos nyugták a hónap árfolyamán számítanak át.',
+    ],
+  },
+  'month.running': {
+    title: 'Halmozott költés',
+    body: [
+      'A naponta összeadódó költés a havi keretig húzott egyenes mellett. A lakbér a hónap elején jön, ezért a görbe magasan indul, és jó esetben az egyenes alá laposodik.',
+      'A görbe csak a rögzített nyugtákat számolja; az előfizetések a fenti összesítőkben vannak benne.',
+    ],
+  },
+  'month.everyday': {
+    title: 'Mindennapi költés naponta',
+    body: ['A mindennapi sorok napi összege. A szaggatott vonal az, amennyit a mindennapi keret naponta enged.'],
+  },
+  'lines.settings': {
+    title: 'A hónap alapadatai',
+    body: [
+      'A nettó fizetéshez mér a hónap színe és a mozgástér.',
+      'Az árfolyam azt adja meg, hány euró egy forint: ezen számítanak át a forintos nyugták ebben a hónapban.',
+    ],
+  },
+  'lines.models': {
+    title: 'Számítási módok',
+    body: [
+      {
+        list: [
+          'Fix: a keret és az eddigi költés közül a nagyobbal zár (lakbér, rezsi, egyszeri tételek).',
+          'Egyenetlen: ugyanígy zár, de nagyobb, ritkább tételekből áll (például a menza).',
+          'Ütemezett: a hónap tempója és a keret tempója közti átlaggal folytatódik (élelmiszer, közlekedés).',
+          'Előfizetés: nincs nyugtája; a terhelés napjától a teljes összeg elköltöttnek számít.',
+        ],
+      },
+    ],
+  },
+  'lines.start': {
+    title: 'Új hónap indítása',
+    body: [
+      'Átmásolja ennek a hónapnak a sorait, nettó fizetését és árfolyamát a következő hónapba. Utána csak azt kell átírni, ami változik, például a kéthavonta érkező vízszámlát.',
+    ],
+  },
   'receipts.list': {
     title: 'Nyugták',
     body: [
@@ -41,16 +125,17 @@ export const budgetHelp = {
     ],
   },
   guide: {
-    title: 'Nyugták: a folyamat',
+    title: 'Költségvetés: így működik',
     body: [
-      { heading: '1. Fotó' },
-      'Fotózd le a nyugtát, és küldd el Claude-nak.',
-      { heading: '2. Nyugta-XML' },
-      'Claude elkészíti belőle a nyugta-XML fájlt: tételek, kategóriák, ÁFA, és egy ellenőrzés, hogy az összeg stimmel-e.',
-      { heading: '3. Import' },
-      'Itt, a Nyugták nézetben az Import gombbal töltsd fel. Az app ellenőrzi, és jelzi, ha valami nem stimmel vagy a nyugta már megvan.',
-      { heading: '4. Export és elemzés' },
-      'Válassz időszakot, exportáld, és a fájlt add oda Claude-nak elemzésre.',
+      { heading: 'Hónap' },
+      'A hónap nézet a havi keretet veti össze azzal, amit a nyugták és az előfizetések eddig elköltöttek, és megbecsüli, hová jut a hónap vége.',
+      'Ebben a modulban nincsenek külön összegek bevíve: minden szám a nyugtákból és a Sorok nézetben beállított keretekből jön.',
+      { heading: 'Nyugták' },
+      'Fotózd le a nyugtát, és küldd el Claude-nak. Claude elkészíti belőle a nyugta-XML-t, amit a Nyugták nézetben az Import gombbal töltesz fel. Az app ellenőrzi, és jelzi, ha valami nem stimmel vagy a nyugta már megvan.',
+      { heading: 'Sorok' },
+      'Itt állítható minden sor kerete, számítási módja és az indoklása, valamint a hónap nettó fizetése és árfolyama. A „Következő hónap indítása” átmásolja a hónapot, hogy csak a változásokat kelljen átírni.',
+      { heading: 'Elemzés' },
+      'Mélyebb elemzéshez (kategóriák, ÁFA, kereskedők) válassz időszakot a Nyugták nézetben, exportáld, és a fájlt add oda Claude-nak.',
     ],
   },
 } satisfies Record<string, HelpEntry>
