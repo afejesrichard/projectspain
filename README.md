@@ -36,7 +36,11 @@ sunset; their database tables remain but the app no longer uses them.)
   routes is mounted (see `LOAD-01` in `CONSTRAINTS.md`)
 - **Supabase** (Postgres + Auth) as the canonical store
 - **Space Grotesk** (display) / **Inter** (UI) / **Space Mono** (data, prices,
-  counts, tag serials)
+  counts, tag serials), self-hosted from `@fontsource` (latin and latin-ext
+  subsets of the weights in use; see `src/fonts.css`)
+- Installable web app (`vite-plugin-pwa`): a service worker precaches the app
+  shell after sign-in, so repeat opens are instant and work offline; data
+  always comes from Supabase. The public catalogue never registers it.
 
 ## Screens
 

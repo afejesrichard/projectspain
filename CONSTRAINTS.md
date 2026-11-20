@@ -44,10 +44,12 @@ Rules that must survive any later rewrite. Each is marked in code with a
   `src/stores/receipts.ts`, `src/stores/budget.ts`) never load at import time;
   the route that needs one acquires its lifecycle on mount (a module's parent
   route, or a `Hold` around a group of routes) and releases it on unmount,
-  which removes the channel. Home makes no module data calls; its tiles read figures
-  computed on the device or cached by the module on its last visit. Enforced in
-  `src/lib/moduleLifecycle.ts`, `src/components/ModuleLayout.tsx` and
-  `src/screens/Home.tsx`.
+  which removes the channel. Home makes exactly one data call,
+  `home_summary()`; its tiles paint first from the figures cached on the
+  device and repaint when the summary lands. The service worker is registered
+  only after sign-in, so the public catalogue never downloads the editor.
+  Enforced in `src/lib/moduleLifecycle.ts`, `src/components/ModuleLayout.tsx`,
+  `src/screens/Home.tsx`, `src/lib/homeSummary.ts` and `src/lib/pwa.ts`.
 
 ## Help
 

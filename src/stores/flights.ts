@@ -165,7 +165,7 @@ onSignOut(() => useFlights.setState(initial()))
 useFlights.subscribe((s, prev) => {
   if (!s.settings || (s.trips === prev.trips && s.settings === prev.settings)) return
   const b = computeBoard(s.trips, s.legs, s.settings, localToday(), Date.now())
-  writeTile('flights', { deals: b.dealCount, trips: s.trips.length, at: localToday() })
+  writeTile('flights', { deals: b.dealCount, trips: s.trips.length, at: localToday(), lastScan: b.lastScan })
 })
 
 let channelSeq = 0

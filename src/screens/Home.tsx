@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { color, font, hexA } from '../theme'
 import { MODULES, type ModuleId } from '../modules'
@@ -5,6 +6,7 @@ import { ModuleIcon } from '../components/ModuleIcon'
 import { readTile } from '../lib/tileCache'
 import { useIsDesktop } from '../hooks/useMedia'
 import { fmtEur } from '../lib/budget'
+import { refreshHomeSummary } from '../lib/homeSummary'
 
 const DOT_COLOR = {
   live: color.sell,
@@ -14,9 +16,9 @@ const DOT_COLOR = {
   idle: color.faintInk,
 } as const
 
-// INVARIANT [LOAD-01] — home asks the database nothing. Each tile paints from
-// figures computed on the device or cached by the module on its last visit;
-// tapping a tile is the only thing that loads a module.
+// INVARIANT [LOAD-01] — home makes exactly one data call, home_summary(). The
+// tiles paint at once from the last cached figures, then repaint when the
+// summary lands. Tapping a tile is the only thing that loads a module.
 
 type Dot = 'live' | 'idle' | 'good' | 'warn' | 'bad'
 
@@ -65,7 +67,7 @@ function tileContent(id: ModuleId, today: Date): TileContent {
     const day = `${today.getDate()}. nap / ${daysInMonth(today)}`
     const b = readTile('budget')
     if (b && b.month === `${monthKey(today)}-01`) {
-      return { figure: `${fmtEur(b.spentCents, { whole: true })} / ${fmtEur(b.budgetCents, { whole: true })}`, sub: day, dot: b.verdict }
+      return { figure: `${fmtEur(b.spentCents, { whole: true }).replace(/\s€$/, '')} / ${fmtEur(b.budgetCents, { whole: true })}`, sub: day, dot: b.verdict }
     }
     const cached = readTile('receipts')
     const count = cached && cached.month === monthKey(today) ? cached.count : null
@@ -86,8 +88,12 @@ function tileContent(id: ModuleId, today: Date): TileContent {
   }
   if (id === 'flights') {
     const f = readTile('flights')
-    if (f && f.deals > 0) return { figure: `${f.deals} ajánlat`, sub: 'átlag alatt', dot: 'good' }
-    return { figure: 'Figyelés', sub: f ? `${f.trips} rögzített út` : 'BCN ⇄ BUD', dot: f ? 'live' : 'idle' }
+    const scan = readTile('flightsScan')
+    // A scan newer than the one the deal count was worked out from.
+    const newer = !!scan?.lastScan && (!f?.lastScan || Date.parse(scan.lastScan) > Date.parse(f.lastScan))
+    const trips = scan?.trips ?? f?.trips
+    if (f && f.deals > 0) return { figure: `${f.deals} ajánlat`, sub: newer ? 'új keresés érkezett' : 'átlag alatt', dot: 'good' }
+    return { figure: 'Figyelés', sub: newer ? 'új keresés érkezett' : trips != null ? `${trips} rögzített út` : 'BCN ⇄ BUD', dot: f || scan ? 'live' : 'idle' }
   }
   const cached = readTile('moving')
   return cached
@@ -99,6 +105,17 @@ export function Home() {
   const navigate = useNavigate()
   const isDesktop = useIsDesktop()
   const today = new Date()
+  // Repaint once the summary has refreshed the cached figures.
+  const [, setFresh] = useState(0)
+  useEffect(() => {
+    let alive = true
+    refreshHomeSummary().then((ok) => {
+      if (ok && alive) setFresh((n) => n + 1)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
   const dateLine = new Intl.DateTimeFormat('hu-HU', { month: 'long', day: 'numeric', weekday: 'long' }).format(today)
 
   return (
