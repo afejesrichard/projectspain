@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Suspense, useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { color, font } from '../theme'
-import { useStore } from '../store'
+import { useSession } from '../stores/session'
 import { useIsDesktop } from '../hooks/useMedia'
-import { IconGrid, IconBox, IconCopy, IconCheck, IconPackage, IconReceipt } from './icons'
+import { IconCopy, IconCheck, IconArrowLeft, IconMenu, IconClose, IconHome, IconLogout } from './icons'
+import { ModuleIcon } from './ModuleIcon'
+import { MODULES, moduleFor, parentOf } from '../modules'
 import type { Person } from '../types'
 
 import { publicShareUrl } from '../lib/shareUrl'
@@ -11,9 +13,9 @@ import { personName } from '../lib/people'
 
 // --- Acting-as switch: not a security control, just whose name goes on a
 // proposal and whose sign-off an approval represents. ------------------------
-function ActingAsSwitch({ small = false }: { small?: boolean }) {
-  const actingAs = useStore((s) => s.actingAs)
-  const setActingAs = useStore((s) => s.setActingAs)
+function ActingAsSwitch() {
+  const actingAs = useSession((s) => s.actingAs)
+  const setActingAs = useSession((s) => s.setActingAs)
   const btn = (who: Person, active: boolean) => (
     <button
       key={who}
@@ -21,7 +23,7 @@ function ActingAsSwitch({ small = false }: { small?: boolean }) {
       aria-pressed={active}
       style={{
         flex: 1,
-        padding: small ? '5px 11px' : '7px 0',
+        padding: '7px 0',
         borderRadius: 6,
         border: 'none',
         cursor: 'pointer',
@@ -35,93 +37,264 @@ function ActingAsSwitch({ small = false }: { small?: boolean }) {
     </button>
   )
   return (
-    <div style={{ display: 'flex', gap: small ? 4 : 6, background: color.shellPanel, borderRadius: 8, padding: small ? 3 : 4 }}>
+    <div style={{ display: 'flex', gap: 6, background: color.shellPanel, borderRadius: 8, padding: 4 }}>
       {btn('Richard', actingAs === 'Richard')}
       {btn('Dorka', actingAs === 'Dorka')}
     </div>
   )
 }
 
-function CopyLinkButton({ variant }: { variant: 'shell' | 'solid' }) {
+const shellButton: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  justifyContent: 'center',
+  padding: '11px 12px',
+  borderRadius: 8,
+  border: `1px solid ${color.shellBorderSoft}`,
+  background: 'transparent',
+  color: color.paper,
+  fontSize: 13,
+  fontWeight: 500,
+  cursor: 'pointer',
+}
+
+function CopyLinkButton() {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(publicShareUrl())
     } catch {
-      /* clipboard blocked — the label still confirms intent */
+      /* clipboard blocked: the label still confirms intent */
     }
     setCopied(true)
     setTimeout(() => setCopied(false), 1800)
   }
-  const label = copied ? 'Link kimásolva' : 'Publikus link másolása'
-  if (variant === 'solid') {
-    return (
-      <button
-        onClick={copy}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 9,
-          padding: '13px 18px',
-          borderRadius: 9,
-          border: `1px solid ${color.ink}`,
-          background: color.ink,
-          color: color.paper,
-          fontSize: 14,
-          fontWeight: 500,
-          cursor: 'pointer',
-        }}
-      >
-        {copied ? <IconCheck size={15} /> : <IconCopy size={15} />}
-        {label}
-      </button>
-    )
-  }
   return (
-    <button
-      onClick={copy}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        justifyContent: 'center',
-        padding: '11px 12px',
-        borderRadius: 8,
-        border: `1px solid ${color.shellBorderSoft}`,
-        background: 'transparent',
-        color: color.paper,
-        fontSize: 13,
-        fontWeight: 500,
-        cursor: 'pointer',
-      }}
-    >
+    <button onClick={copy} style={shellButton}>
       {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-      {label}
+      {copied ? 'Link kimásolva' : 'Publikus link másolása'}
     </button>
   )
 }
 
-type NavItem = { to: string; label: string; short?: string; icon: string; end: boolean }
+function LogoutButton() {
+  const logout = useSession((s) => s.logout)
+  const navigate = useNavigate()
+  return (
+    <button
+      onClick={async () => {
+        await logout()
+        navigate('/belepes', { replace: true })
+      }}
+      style={{ ...shellButton, border: 'none', color: color.shellMutedSoft }}
+    >
+      <IconLogout size={14} />
+      Kijelentkezés
+    </button>
+  )
+}
 
-const NAV: NavItem[] = [
-  { to: '/', label: 'Áttekintés', short: 'Áttek.', icon: 'grid', end: true },
-  { to: '/leltar', label: 'Leltár', icon: 'box', end: false },
-  { to: '/dobozok', label: 'Dobozok', short: 'Doboz', icon: 'package', end: false },
-  { to: '/kiadasok', label: 'Kiadások', short: 'Kiadás', icon: 'receipt', end: false },
-]
+// The module list, shared by the desktop sidebar and the phone drawer.
+function ModuleNav() {
+  return (
+    <nav aria-label="Modulok" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <NavLink to="/" end style={navStyle}>
+        <IconHome size={16} />
+        Kezdőlap
+      </NavLink>
+      {MODULES.map((m) => {
+        // A module with several views highlights the view, not its header.
+        const hasViews = (m.views?.length ?? 0) > 1
+        return (
+          <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <NavLink to={m.path} style={({ isActive }) => navStyle({ isActive: isActive && !hasViews })}>
+              <ModuleIcon id={m.id} size={16} />
+              {m.title}
+            </NavLink>
+            {hasViews &&
+              m.views!.map((v) => (
+                <NavLink key={v.to} to={v.to} end={v.end} style={subNavStyle}>
+                  {v.label}
+                </NavLink>
+              ))}
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
 
-function NavIcon({ name }: { name: string }) {
-  if (name === 'grid') return <IconGrid size={16} />
-  if (name === 'box') return <IconBox size={16} />
-  if (name === 'package') return <IconPackage size={16} />
-  return <IconReceipt size={16} />
+function ShellFooter() {
+  return (
+    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 16 }}>
+      <CopyLinkButton />
+      <div style={{ borderTop: `1px solid ${color.shellBorder}`, paddingTop: 14 }}>
+        <div
+          style={{
+            fontFamily: font.mono,
+            fontSize: 10,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: color.shellMuted,
+            marginBottom: 7,
+          }}
+        >
+          Most én
+        </div>
+        <ActingAsSwitch />
+      </div>
+      <LogoutButton />
+    </div>
+  )
+}
+
+function Brand() {
+  return (
+    <NavLink to="/" style={{ padding: '6px 8px 18px', color: 'inherit', textDecoration: 'none' }}>
+      <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em' }}>Project Spain</div>
+      <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: '0.04em', color: color.shellMuted, marginTop: 2 }}>
+        richard &amp; dorka · barcelona
+      </div>
+    </NavLink>
+  )
+}
+
+function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
+
+  if (!open) return null
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(15,24,36,0.45)' }} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menü"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 'min(320px, 86vw)',
+          background: color.ink,
+          color: color.paper,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '14px 16px calc(18px + env(safe-area-inset-bottom))',
+          overflowY: 'auto',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <Brand />
+          <button onClick={onClose} aria-label="Menü bezárása" style={iconButton}>
+            <IconClose />
+          </button>
+        </div>
+        <ModuleNav />
+        <ShellFooter />
+      </div>
+    </div>
+  )
+}
+
+const iconButton: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 40,
+  height: 40,
+  margin: -8,
+  border: 'none',
+  borderRadius: 8,
+  background: 'transparent',
+  color: 'inherit',
+  cursor: 'pointer',
+}
+
+function TopBar({ onMenu }: { onMenu: () => void }) {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const mod = moduleFor(pathname)
+  const parent = parentOf(pathname)
+
+  return (
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        background: color.ink,
+        color: color.paper,
+        padding: 'calc(10px + env(safe-area-inset-top)) 16px 10px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        minHeight: 52,
+      }}
+    >
+      {parent && (
+        <button onClick={() => navigate(parent)} aria-label="Vissza" style={iconButton}>
+          <IconArrowLeft size={20} />
+        </button>
+      )}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+        <NavLink
+          to="/"
+          style={{
+            fontFamily: font.display,
+            fontWeight: 700,
+            fontSize: mod ? 15 : 18,
+            color: mod ? color.shellMutedSoft : color.paper,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Project Spain
+        </NavLink>
+        {mod && (
+          <span
+            style={{
+              fontFamily: font.display,
+              fontWeight: 700,
+              fontSize: 18,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {mod.title}
+          </span>
+        )}
+      </div>
+      <button onClick={onMenu} aria-label="Menü" style={{ ...iconButton, marginLeft: 'auto' }}>
+        <IconMenu />
+      </button>
+    </header>
+  )
 }
 
 export function AppShell() {
   const isDesktop = useIsDesktop()
-  const location = useLocation()
+  const { pathname } = useLocation()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const contentPad = isDesktop ? '30px 34px 48px' : '18px 16px 28px'
+  // Any navigation, including one from inside the drawer, closes it.
+  useEffect(() => setDrawerOpen(false), [pathname])
+
+  const contentPad = isDesktop ? '30px 34px 48px' : '18px 16px calc(28px + env(safe-area-inset-bottom))'
 
   return (
     <div
@@ -147,90 +320,26 @@ export function AppShell() {
             position: 'sticky',
             top: 0,
             height: '100vh',
+            overflowY: 'auto',
           }}
         >
-          <div style={{ padding: '6px 8px 18px' }}>
-            <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em' }}>
-              Project Spain
-            </div>
-            <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: '0.04em', color: color.shellMuted, marginTop: 2 }}>
-              richard &amp; dorka · a költözés
-            </div>
-          </div>
-
-          {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end} style={navStyle}>
-              <NavIcon name={n.icon} />
-              {n.label}
-            </NavLink>
-          ))}
-
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 16 }}>
-            <CopyLinkButton variant="shell" />
-            <div style={{ borderTop: `1px solid ${color.shellBorder}`, paddingTop: 14 }}>
-              <div
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 10,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: color.shellMuted,
-                  marginBottom: 7,
-                }}
-              >
-                Most én
-              </div>
-              <ActingAsSwitch />
-            </div>
-          </div>
+          <Brand />
+          <ModuleNav />
+          <ShellFooter />
         </aside>
       )}
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        {!isDesktop && (
-          <header
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: 20,
-              background: color.ink,
-              color: color.paper,
-              padding: '12px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 18 }}>Project Spain</div>
-            <div style={{ marginLeft: 'auto', width: 168 }}>
-              <ActingAsSwitch small />
-            </div>
-          </header>
-        )}
-
+        {!isDesktop && <TopBar onMenu={() => setDrawerOpen(true)} />}
         <div style={{ flex: 1, padding: contentPad, maxWidth: 1180, width: '100%', margin: '0 auto' }}>
-          <Outlet key={location.pathname} />
+          {/* The shell stays put while a module's chunk arrives. */}
+          <Suspense fallback={null}>
+            <Outlet />
+          </Suspense>
         </div>
-
-        {!isDesktop && (
-          <nav
-            style={{
-              position: 'sticky',
-              bottom: 0,
-              zIndex: 20,
-              background: color.ink,
-              display: 'flex',
-              padding: '8px 6px calc(8px + env(safe-area-inset-bottom))',
-            }}
-          >
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} style={tabStyle}>
-                {n.short ?? n.label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
       </main>
+
+      {!isDesktop && <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />}
     </div>
   )
 }
@@ -254,20 +363,13 @@ function navStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
   }
 }
 
-function tabStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
+function subNavStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
   return {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    padding: '9px 2px',
+    display: 'block',
+    padding: '8px 12px 8px 39px',
     borderRadius: 8,
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 10.5,
-    fontWeight: 600,
-    whiteSpace: 'nowrap',
+    fontSize: 13.5,
+    fontWeight: 500,
     textDecoration: 'none',
     background: isActive ? color.shellHover : 'transparent',
     color: isActive ? color.paper : color.shellMuted,

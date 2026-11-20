@@ -31,3 +31,14 @@ Rules that must survive any later rewrite. Each is marked in code with a
   import is rejected, never merged or overwritten. Enforced by the `receipts`
   primary key (`supabase/migrations/0007_receipts.sql`) and surfaced in
   `src/data/repo.ts` (`insertReceipt`, 23505 → rejected).
+
+## Loading
+
+- **INVARIANT [LOAD-01]** — no module fetches data or opens a live channel
+  before its route mounts. Module stores (`src/stores/moving.ts`,
+  `src/stores/receipts.ts`) never load at import time; each module's parent
+  route acquires its lifecycle on mount and releases it on unmount, which
+  removes the channel. Home makes no module data calls; its tiles read figures
+  computed on the device or cached by the module on its last visit. Enforced in
+  `src/lib/moduleLifecycle.ts`, `src/components/ModuleLayout.tsx` and
+  `src/screens/Home.tsx`.

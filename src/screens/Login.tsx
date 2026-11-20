@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { color, font } from '../theme'
-import { useStore } from '../store'
+import { useSession } from '../stores/session'
 
 // Minimal login: one shared account, created by hand. No email, no signup.
 export function Login() {
-  const login = useStore((s) => s.login)
+  const login = useSession((s) => s.login)
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<null | { kind: 'bad_password' } | { kind: 'unavailable'; message: string }>(null)

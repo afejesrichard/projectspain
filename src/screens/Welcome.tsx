@@ -1,5 +1,5 @@
 import { color, font } from '../theme'
-import { useStore } from '../store'
+import { useSession } from '../stores/session'
 import type { Person } from '../types'
 
 // One-time (per device) identity choice after the first login. Not a security
@@ -7,7 +7,7 @@ import type { Person } from '../types'
 // approval represents. The chosen person becomes this device's default; the
 // acting-as switch in the shell can change it any time.
 export function Welcome() {
-  const setActingAs = useStore((s) => s.setActingAs)
+  const setActingAs = useSession((s) => s.setActingAs)
 
   const choice = (who: Person, label: string) => (
     <button

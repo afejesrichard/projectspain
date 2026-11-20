@@ -30,8 +30,10 @@ sunset; their database tables remain but the app no longer uses them.)
 ## Stack
 
 - **Vite + React + TypeScript** single-page app
-- **Zustand** store with optimistic writes + Supabase **realtime** for quiet
-  live collaboration between the two editors
+- **Zustand**, one store per module (`src/stores/`), with optimistic writes and
+  Supabase **realtime** for quiet live collaboration between the two editors.
+  A module loads its data and opens its live channel only while one of its
+  routes is mounted (see `LOAD-01` in `CONSTRAINTS.md`)
 - **Supabase** (Postgres + Auth) as the canonical store
 - **Space Grotesk** (display) / **Inter** (UI) / **Space Mono** (data, prices,
   counts, tag serials)
@@ -41,14 +43,22 @@ sunset; their database tables remain but the app no longer uses them.)
 | Route | Screen |
 | --- | --- |
 | `#/belepes` | Login (single shared password) |
-| `#/` | Dashboard — the operations board |
+| `#/` | Home: one tile per module, no data calls |
+| `#/koltsegvetes` | Budget (for now redirects to the receipts list) |
+| `#/koltsegvetes/nyugtak` | Receipts: XML import, list, export (see `docs/expenses-format.md`) |
+| `#/koltsegvetes/nyugtak/:id` | Receipt detail |
+| `#/hetvege` | Weekend (placeholder until its phase ships) |
+| `#/repjegy` | Flights (placeholder until its phase ships) |
+| `#/koltozes` | Moving overview (the former dashboard) |
 | `#/leltar` | Inventory grid (filters + search) |
 | `#/leltar/:id` | Item detail (in-place editing) |
 | `#/dobozok` | Numbered moving boxes with content photos |
 | `#/dobozok/:id` | Box detail |
-| `#/kiadasok` | Expenses — receipt XML import, list, export (see `docs/expenses-format.md`) |
-| `#/kiadasok/:id` | Receipt detail |
 | `#/nyilvanos` | **Public** read-only catalogue (no login) |
+
+The old `#/kiadasok` and `#/kiadasok/:id` links redirect to the receipts routes.
+On a phone the shell is a top bar with a menu drawer; from 900px up it is a
+sidebar. Both list the modules from `src/modules.ts`.
 
 Routing is hash-based so the SPA works on GitHub Pages (which has no server
 fallback): deep links always resolve and the shared link never 404s.

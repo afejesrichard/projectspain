@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { color, font } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { ItemCard } from '../components/ItemCard'
 import { AddItemSheet } from '../components/AddItemSheet'
 import { Chip, EmptyState, SkeletonCard } from '../components/primitives'
@@ -19,10 +19,10 @@ const FILTERS: [string, string][] = [
 export function Inventory() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const items = useStore((s) => s.items)
-  const boxes = useStore((s) => s.boxes)
-  const loading = useStore((s) => s.loading)
-  const flashId = useStore((s) => s.flashId)
+  const items = useMoving((s) => s.items)
+  const boxes = useMoving((s) => s.boxes)
+  const loading = useMoving((s) => s.loading)
+  const flashId = useMoving((s) => s.flashId)
 
   const filter = params.get('dispo') ?? 'all'
   const [query, setQuery] = useState('')

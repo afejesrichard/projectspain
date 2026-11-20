@@ -177,3 +177,73 @@ export function IconUpload({ size = 15, style, strokeWidth = 1.6 }: IconProps) {
     </svg>
   )
 }
+
+export function IconMenu({ size = 20, style, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  )
+}
+
+export function IconClose({ size = 20, style, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  )
+}
+
+export function IconHome({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M4 11 12 4l8 7" />
+      <path d="M6 9.5V20h12V9.5" />
+    </svg>
+  )
+}
+
+// A wallet with its clasp: the Budget module.
+export function IconWallet({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" />
+      <rect x="4" y="8" width="16" height="11" rx="2" />
+      <path d="M16 13.5h1.5" />
+    </svg>
+  )
+}
+
+// Sun over a horizon line: the Weekend module.
+export function IconSun({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M7 16a5 5 0 0 1 10 0" />
+      <path d="M3 19h18" />
+      <path d="M12 5v3" />
+      <path d="m5.6 9.6 2 1.6" />
+      <path d="m18.4 9.6-2 1.6" />
+    </svg>
+  )
+}
+
+export function IconPlane({ size = 16, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
+    </svg>
+  )
+}
+
+export function IconLogout({ size = 15, style, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...svgProps(size, strokeWidth, style)}>
+      <path d="M14 4H6v16h8" />
+      <path d="M10 12h10" />
+      <path d="m17 8.5 3.5 3.5-3.5 3.5" />
+    </svg>
+  )
+}

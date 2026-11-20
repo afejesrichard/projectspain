@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { color, font, hexA, DISPOSITION_ORDER, DISPOSITIONS } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { DispositionTag } from '../components/DispositionTag'
 import { Toggle } from '../components/AddItemSheet'
 import { PhotoPlaceholder, Chip } from '../components/primitives'
@@ -19,13 +19,13 @@ const STATUS: [ItemStatus, string][] = [
 export function ItemDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const items = useStore((s) => s.items)
-  const setDisposition = useStore((s) => s.setDisposition)
-  const setStatus = useStore((s) => s.setStatus)
-  const togglePublished = useStore((s) => s.togglePublished)
-  const updateItem = useStore((s) => s.updateItem)
-  const removeItem = useStore((s) => s.removeItem)
-  const ensureItemPhotos = useStore((s) => s.ensureItemPhotos)
+  const items = useMoving((s) => s.items)
+  const setDisposition = useMoving((s) => s.setDisposition)
+  const setStatus = useMoving((s) => s.setStatus)
+  const togglePublished = useMoving((s) => s.togglePublished)
+  const updateItem = useMoving((s) => s.updateItem)
+  const removeItem = useMoving((s) => s.removeItem)
+  const ensureItemPhotos = useMoving((s) => s.ensureItemPhotos)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const item = items.find((i) => i.id === Number(id))
@@ -322,8 +322,8 @@ export function ItemDetail() {
 // Sealed and already-unpacked boxes are hidden — except the item's current one,
 // so the assignment stays visible.
 function BoxPicker({ itemId, boxId }: { itemId: number; boxId: number | null }) {
-  const boxes = useStore((s) => s.boxes)
-  const updateItem = useStore((s) => s.updateItem)
+  const boxes = useMoving((s) => s.boxes)
+  const updateItem = useMoving((s) => s.updateItem)
   const navigate = useNavigate()
 
   const openBoxes = boxes.filter((b) => (!b.sealed && !b.unpackedAt) || b.id === boxId)
