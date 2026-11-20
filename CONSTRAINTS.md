@@ -32,10 +32,23 @@ Rules that must survive any later rewrite. Each is marked in code with a
   (`parseEurInput`). Enforced in `src/lib/expenses.ts` (`parseCents` and the
   arithmetic checks) and `src/lib/budget.ts`.
 
-- **CONTRACT** — the receipt `@id` is unique across the store. A duplicate-id
-  import is rejected, never merged or overwritten. Enforced by the `receipts`
-  primary key (`supabase/migrations/0007_receipts.sql`) and surfaced in
-  `src/data/repo.ts` (`insertReceipt`, 23505 → rejected).
+- **CONTRACT [EXP-05]** — duplicate detection is by receipt `@id`, and by
+  merchant tax id (NIF) plus receipt number only when both exist. The `@id` is
+  unique across the store: a duplicate-id import is rejected, never merged or
+  overwritten. A NIF and receipt-number match only warns, and is skipped by
+  default. `reference/@type` is an open set: it is never validated, restricted
+  or remapped, and a non-receipt-number reference (e.g. `nrc`) never feeds the
+  NIF rule. Enforced by the `receipts` primary key
+  (`supabase/migrations/0007_receipts.sql`), `src/data/repo.ts`
+  (`insertReceipt`, 23505 → rejected), `src/lib/expenses.ts` and
+  `src/screens/Expenses.tsx` (the NIF warning).
+
+## Photos
+
+- **INVARIANT [EGRESS-01]** — lists and grids never fetch the full-size
+  `photos` column. They read the small `thumb`; full photos are fetched per row
+  when a detail screen opens or a visitor taps a card. Enforced in
+  `src/lib/thumb.ts`, `src/data/repo.ts` and `src/stores/moving.ts`.
 
 ## Loading
 
