@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { color, font, hexA, DISPOSITION_ORDER, DISPOSITIONS, type Disposition } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { useIsDesktop } from '../hooks/useMedia'
 import { PhotoUploader } from './PhotoUploader'
 import type { ItemStatus } from '../types'
 
 export function AddItemSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const isDesktop = useIsDesktop()
-  const addItem = useStore((s) => s.addItem)
+  const addItem = useMoving((s) => s.addItem)
 
   const [name, setName] = useState('')
   const [disposition, setDisposition] = useState<Disposition>('keep')

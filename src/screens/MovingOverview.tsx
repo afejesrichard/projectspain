@@ -1,18 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { color, font, DISPOSITIONS, DISPOSITION_ORDER, fmtHUF } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { IconCopy, IconCheck } from '../components/icons'
 import { Skeleton } from '../components/primitives'
 import { useState } from 'react'
 
 import { publicShareUrl } from '../lib/shareUrl'
 
-export function Dashboard() {
+export function MovingOverview() {
   const navigate = useNavigate()
-  const items = useStore((s) => s.items)
-  const loading = useStore((s) => s.loading)
-  const boxes = useStore((s) => s.boxes)
-  const receipts = useStore((s) => s.receipts)
+  const items = useMoving((s) => s.items)
+  const loading = useMoving((s) => s.loading)
+  const boxes = useMoving((s) => s.boxes)
 
   const dispoCounts = DISPOSITION_ORDER.map((k) => ({
     key: k,
@@ -33,7 +32,7 @@ export function Dashboard() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: color.softInk }}>
-            Irányítópult
+            Költözés
           </div>
           <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 'clamp(52px,9vw,84px)', lineHeight: 0.95, letterSpacing: '-0.02em', marginTop: 6 }}>
             {items.length}
@@ -104,11 +103,6 @@ export function Dashboard() {
               ? ` · ${boxes.filter((b) => b.unpackedAt).length} kicsomagolva`
               : '')
           }
-        />
-        <QuickEntry
-          onClick={() => navigate('/kiadasok')}
-          label="Kiadások megnyitása"
-          note={`${receipts.length} nyugta`}
         />
       </div>
     </div>

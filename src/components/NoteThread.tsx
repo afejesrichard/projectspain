@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { color, font, hexA } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { personName } from '../lib/people'
 import type { ItemNote } from '../types'
 
@@ -28,8 +28,8 @@ function authorTint(n: ItemNote): string {
 
 // Private note thread — append-only, author + timestamp, never public.
 export function NoteThread({ itemId, giveHint }: { itemId: number; giveHint?: boolean }) {
-  const allNotes = useStore((s) => s.notes)
-  const addNote = useStore((s) => s.addNote)
+  const allNotes = useMoving((s) => s.notes)
+  const addNote = useMoving((s) => s.addNote)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 

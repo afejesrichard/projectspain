@@ -1,23 +1,30 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useStore } from './store'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { useSession } from './stores/session'
 import { color, font } from './theme'
 
-// Split every screen into its own chunk. The biggest win is the public
-// catalogue: strangers opening the shared link no longer download the entire
-// editor app, and the editor's own first paint only loads what each route needs.
+// Split every screen into its own chunk. Strangers opening the public link
+// never download the editor, and each module's code, store and live channel
+// arrive only when one of its routes is opened (INVARIANT [LOAD-01]).
 const AppShell = lazy(() => import('./components/AppShell').then((m) => ({ default: m.AppShell })))
 const Login = lazy(() => import('./screens/Login').then((m) => ({ default: m.Login })))
 const Welcome = lazy(() => import('./screens/Welcome').then((m) => ({ default: m.Welcome })))
-const Dashboard = lazy(() => import('./screens/Dashboard').then((m) => ({ default: m.Dashboard })))
+const Home = lazy(() => import('./screens/Home').then((m) => ({ default: m.Home })))
+const ComingSoon = lazy(() => import('./screens/ComingSoon').then((m) => ({ default: m.ComingSoon })))
+
+// Moving
+const MovingModule = lazy(() => import('./screens/modules/MovingModule').then((m) => ({ default: m.MovingModule })))
+const MovingOverview = lazy(() => import('./screens/MovingOverview').then((m) => ({ default: m.MovingOverview })))
 const Inventory = lazy(() => import('./screens/Inventory').then((m) => ({ default: m.Inventory })))
 const ItemDetail = lazy(() => import('./screens/ItemDetail').then((m) => ({ default: m.ItemDetail })))
 const Boxes = lazy(() => import('./screens/Boxes').then((m) => ({ default: m.Boxes })))
 const BoxDetail = lazy(() => import('./screens/BoxDetail').then((m) => ({ default: m.BoxDetail })))
+
+// Budget
+const BudgetModule = lazy(() => import('./screens/modules/BudgetModule').then((m) => ({ default: m.BudgetModule })))
 const Expenses = lazy(() => import('./screens/Expenses').then((m) => ({ default: m.Expenses })))
-const ExpenseDetail = lazy(() =>
-  import('./screens/ExpenseDetail').then((m) => ({ default: m.ExpenseDetail })),
-)
+const ExpenseDetail = lazy(() => import('./screens/ExpenseDetail').then((m) => ({ default: m.ExpenseDetail })))
+
 const PublicPage = lazy(() => import('./screens/PublicPage').then((m) => ({ default: m.PublicPage })))
 
 function Splash() {
@@ -41,9 +48,9 @@ function Splash() {
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const ready = useStore((s) => s.ready)
-  const authed = useStore((s) => s.authed)
-  const identityChosen = useStore((s) => s.identityChosen)
+  const ready = useSession((s) => s.ready)
+  const authed = useSession((s) => s.authed)
+  const identityChosen = useSession((s) => s.identityChosen)
   const location = useLocation()
   if (!ready) return <Splash />
   if (!authed) return <Navigate to="/belepes" replace state={{ from: location.pathname }} />
@@ -52,8 +59,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Old #/kiadasok links (bookmarks, chat history) keep working.
+function LegacyReceiptRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/koltsegvetes/nyugtak/${id ?? ''}`} replace />
+}
+
 export default function App() {
-  const init = useStore((s) => s.init)
+  const init = useSession((s) => s.init)
   useEffect(() => {
     init()
   }, [init])
@@ -61,7 +74,7 @@ export default function App() {
   return (
     <Suspense fallback={<Splash />}>
       <Routes>
-        {/* Public catalogue — no login, the shareable page. */}
+        {/* Public catalogue: no login, the shareable page. */}
         <Route path="/nyilvanos" element={<PublicPage />} />
 
         {/* Login. */}
@@ -75,13 +88,28 @@ export default function App() {
             </RequireAuth>
           }
         >
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/leltar" element={<Inventory />} />
-          <Route path="/leltar/:id" element={<ItemDetail />} />
-          <Route path="/dobozok" element={<Boxes />} />
-          <Route path="/dobozok/:id" element={<BoxDetail />} />
-          <Route path="/kiadasok" element={<Expenses />} />
-          <Route path="/kiadasok/:id" element={<ExpenseDetail />} />
+          <Route path="/" element={<Home />} />
+
+          <Route element={<BudgetModule />}>
+            {/* The Month view replaces this redirect in the budget phase. */}
+            <Route path="/koltsegvetes" element={<Navigate to="/koltsegvetes/nyugtak" replace />} />
+            <Route path="/koltsegvetes/nyugtak" element={<Expenses />} />
+            <Route path="/koltsegvetes/nyugtak/:id" element={<ExpenseDetail />} />
+          </Route>
+
+          <Route path="/hetvege" element={<ComingSoon title="Hétvége" />} />
+          <Route path="/repjegy" element={<ComingSoon title="Repjegy" />} />
+
+          <Route element={<MovingModule />}>
+            <Route path="/koltozes" element={<MovingOverview />} />
+            <Route path="/leltar" element={<Inventory />} />
+            <Route path="/leltar/:id" element={<ItemDetail />} />
+            <Route path="/dobozok" element={<Boxes />} />
+            <Route path="/dobozok/:id" element={<BoxDetail />} />
+          </Route>
+
+          <Route path="/kiadasok" element={<Navigate to="/koltsegvetes/nyugtak" replace />} />
+          <Route path="/kiadasok/:id" element={<LegacyReceiptRedirect />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

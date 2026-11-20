@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { color, font, hexA } from '../theme'
-import { useStore } from '../store'
+import { useReceipts } from '../stores/receipts'
 import { Chip, EmptyState, Skeleton } from '../components/primitives'
 import { IconDownload, IconSearch, IconUpload } from '../components/icons'
 import type { Receipt } from '../types'
@@ -89,9 +89,9 @@ interface ImportOutcome {
 
 export function Expenses() {
   const navigate = useNavigate()
-  const receipts = useStore((s) => s.receipts)
-  const loading = useStore((s) => s.loading)
-  const importReceipt = useStore((s) => s.importReceipt)
+  const receipts = useReceipts((s) => s.receipts)
+  const loading = useReceipts((s) => s.loading)
+  const importReceipt = useReceipts((s) => s.importReceipt)
 
   // --- filters ---
   const [preset, setPreset] = useState<RangePreset>('all')
@@ -535,7 +535,7 @@ export function Expenses() {
       ) : (
         <div style={{ paddingTop: 8 }}>
           {filtered.map((r) => (
-            <ReceiptRow key={r.id} r={r} onOpen={() => navigate(`/kiadasok/${r.id}`)} />
+            <ReceiptRow key={r.id} r={r} onOpen={() => navigate(`/koltsegvetes/nyugtak/${r.id}`)} />
           ))}
         </div>
       )}

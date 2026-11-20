@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { color, font, hexA } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { EmptyState, Skeleton } from '../components/primitives'
 import { IconPlus, IconSearch } from '../components/icons'
 import type { Box } from '../types'
 
 export function Boxes() {
   const navigate = useNavigate()
-  const boxes = useStore((s) => s.boxes)
-  const items = useStore((s) => s.items)
-  const loading = useStore((s) => s.loading)
-  const addBox = useStore((s) => s.addBox)
+  const boxes = useMoving((s) => s.boxes)
+  const items = useMoving((s) => s.items)
+  const loading = useMoving((s) => s.loading)
+  const addBox = useMoving((s) => s.addBox)
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [showUnpacked, setShowUnpacked] = useState(false)

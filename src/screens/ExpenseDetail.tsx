@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { color, font, hexA } from '../theme'
-import { useStore } from '../store'
+import { useReceipts } from '../stores/receipts'
 import { Skeleton } from '../components/primitives'
 import { IconArrowLeft } from '../components/icons'
 import { fetchReceiptRaw } from '../data/repo'
@@ -13,9 +13,9 @@ import { formatCents } from '../lib/expenses'
 export function ExpenseDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const receipt = useStore((s) => s.receipts.find((r) => r.id === id))
-  const loading = useStore((s) => s.loading)
-  const removeReceipt = useStore((s) => s.removeReceipt)
+  const receipt = useReceipts((s) => s.receipts.find((r) => r.id === id))
+  const loading = useReceipts((s) => s.loading)
+  const removeReceipt = useReceipts((s) => s.removeReceipt)
 
   const [raw, setRaw] = useState<string | null>(null)
   const [rawError, setRawError] = useState(false)
@@ -47,7 +47,7 @@ export function ExpenseDetail() {
     if (loading) return <Skeleton h={200} r={12} />
     return (
       <div>
-        <BackLink onClick={() => navigate('/kiadasok')} />
+        <BackLink onClick={() => navigate('/koltsegvetes/nyugtak')} />
         <p style={{ color: color.softInk }}>Ez a nyugta nincs meg — lehet, hogy törölve lett.</p>
       </div>
     )
@@ -58,12 +58,12 @@ export function ExpenseDetail() {
     setDeleting(true)
     const ok = await removeReceipt(receipt.id)
     setDeleting(false)
-    if (ok) navigate('/kiadasok')
+    if (ok) navigate('/koltsegvetes/nyugtak')
   }
 
   return (
     <div style={{ maxWidth: 760 }}>
-      <BackLink onClick={() => navigate('/kiadasok')} />
+      <BackLink onClick={() => navigate('/koltsegvetes/nyugtak')} />
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
         <h1 style={{ fontFamily: font.display, fontWeight: 700, fontSize: 24, margin: 0 }}>

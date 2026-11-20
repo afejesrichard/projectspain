@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { color, font, hexA } from '../theme'
-import { useStore } from '../store'
+import { useMoving } from '../stores/moving'
 import { PhotoUploader } from '../components/PhotoUploader'
 import { Lightbox } from '../components/Lightbox'
 import { Toggle } from '../components/AddItemSheet'
@@ -11,13 +11,13 @@ import { IconArrowLeft, IconCheck, IconPencil } from '../components/icons'
 export function BoxDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const boxes = useStore((s) => s.boxes)
-  const items = useStore((s) => s.items)
-  const updateBox = useStore((s) => s.updateBox)
-  const removeBox = useStore((s) => s.removeBox)
-  const removeBoxWithItems = useStore((s) => s.removeBoxWithItems)
-  const renumberBox = useStore((s) => s.renumberBox)
-  const ensureBoxPhotos = useStore((s) => s.ensureBoxPhotos)
+  const boxes = useMoving((s) => s.boxes)
+  const items = useMoving((s) => s.items)
+  const updateBox = useMoving((s) => s.updateBox)
+  const removeBox = useMoving((s) => s.removeBox)
+  const removeBoxWithItems = useMoving((s) => s.removeBoxWithItems)
+  const renumberBox = useMoving((s) => s.renumberBox)
+  const ensureBoxPhotos = useMoving((s) => s.ensureBoxPhotos)
 
   const box = boxes.find((b) => b.id === Number(id))
   const [label, setLabel] = useState(box?.label ?? '')
