@@ -1,9 +1,17 @@
 # Project Spain
 
-A private, mobile-first relocation app for two people (Richard & Dorka) turning
-the chaos of packing up a home into something they can **see, agree on, and act
-on** — plus a public, read-only catalogue that makes the "for sale" pile easy to
-share with a single link.
+A private, mobile-first family app for two people (Richard & Dorka), installable
+to the phone's home screen. Home is a grid of four modules, each loaded only
+when opened:
+
+- **Költségvetés (Budget):** the month against its budget with a month-end
+  projection, built from the receipts they import, plus the receipts list.
+- **Hétvége (Weekend):** this weekend's family programs and weather or civil
+  protection warnings, screened every Thursday evening by a scheduled Claude task.
+- **Repjegy (Flights):** a BCN–BUD fare watch for the family and the
+  grandparents, fed twice a week by a scheduled Claude scan.
+- **Költözés (Moving):** the relocation inventory and boxes, plus a public,
+  read-only catalogue that makes the "for sale" pile easy to share with a link.
 
 **Live (GitHub Pages):** https://afejesrichard.github.io/projectspain/
 **Public catalogue:** https://afejesrichard.github.io/projectspain/#/nyilvanos
@@ -11,16 +19,16 @@ share with a single link.
 Deployed automatically by GitHub Actions on every push (see
 `.github/workflows/deploy.yml`) — nothing to install or run locally.
 
-Built from the Claude Design brief. The interface is a **shipping manifest**:
-every object accounted for, tagged, and given a destination. The signature
-element is the **disposition tag** — a punched luggage tag that colour-codes
-meaning across the whole app:
+The interface is a **shipping manifest**, from the Claude Design brief: every
+object accounted for, tagged, and given a destination. Its signature element,
+the **disposition tag**, is a punched luggage tag whose four colours are the
+only accents in the app:
 
 | Tag | Colour | Meaning |
 | --- | --- | --- |
-| `MARAD` | steel blue `#2F6F8F` | Keep — staying with us |
+| `VISSZÜK` | steel blue `#2F6F8F` | Keep — staying with us |
 | `ELADÓ` | money green `#3F8A5B` | Sell — with price |
-| `ELAJÁNDÉK` | amber `#C98A2B` | Give away |
+| `INGYEN ELVIHETŐ` | amber `#C98A2B` | Give away |
 | `KIDOB` | brick `#9A5B4E` | Throw away |
 
 Every tag is stamped solid the moment it's chosen — dispositions apply
@@ -47,7 +55,7 @@ sunset; their database tables remain but the app no longer uses them.)
 | Route | Screen |
 | --- | --- |
 | `#/belepes` | Login (single shared password) |
-| `#/` | Home: one tile per module, no data calls |
+| `#/` | Home: one tile per module, filled by a single `home_summary()` call |
 | `#/koltsegvetes` | Budget: the month against its budget, with a month-end projection |
 | `#/koltsegvetes/sorok` | Budget lines: amounts, projection model, net pay and rate; start the next month |
 | `#/koltsegvetes/nyugtak` | Receipts: XML import, list, export (see `docs/expenses-format.md`) |
@@ -77,8 +85,14 @@ however they already know you.
 The public page is the screen strangers judge them by, so private data must never
 leak there. This is enforced at the database, not just the UI:
 
-- `items`, `boxes` and `receipts` are **RLS-protected**. Anonymous visitors get
-  **nothing** from the base tables.
+- Every base table (`items`, `boxes`, `receipts`, `budget_months`,
+  `budget_lines`, `weekend_screens`, `fare_quotes`, `app_settings`) is
+  **RLS-protected**, and every function runs with the caller's rights.
+  Anonymous visitors get **nothing** from them.
+- **No personal data in the repository** (it is public): the home address, pay,
+  budget amounts and travel party live in the database (`app_settings` and the
+  budget tables) and are seeded there, never committed. See `PRIV-01` in
+  `CONSTRAINTS.md`.
 - The editor **authenticates** (one shared account) to read/write the base tables.
 - The public catalogue is a **view** (`public_items`) that exposes only safe
   columns — no `private_note`, no `proposed_by`, no approval state — and only
@@ -103,6 +117,20 @@ screen opens or a visitor taps a card. Rows from before thumbs existed get
 one generated and written back by the first device that opens the app. Usage
 is visible in the Supabase dashboard under Organization → Usage.
 
+## Scheduled scans
+
+Two scheduled Claude tasks (claude.ai → scheduled tasks) write into the app
+through validated database functions, and nothing else:
+
+| Task | Runs | Writes through |
+| --- | --- | --- |
+| Weekly family weekend screen | Thu 18:47 Madrid | `weekend_save(jsonb)`: validates the screen, replaces that weekend's row |
+| BCN-BUD fare scan | Mon and Thu 19:47 Madrid | `fare_save(jsonb)`: validates each trip, adds new ids, never updates or deletes |
+
+Both need the Supabase connector attached in claude.ai. A malformed run fails
+with a named reason (`WEEKEND_BAD_ITEM`, `FARE_BAD_TRIP`) instead of reaching
+the screens.
+
 ## Deployment
 
 Every push to `main` builds the app and deploys it to GitHub Pages via
@@ -124,9 +152,8 @@ key is safe to expose). To point at a different project, copy `.env.example` to
 
 One hand-made shared account — the login screen only asks for a password and
 supplies the account email (`manifest@move.local`) behind the scenes. The
-"acting as" switch (Richard / Dorka) in the shell is **not** a security control;
-it only decides whose name goes on a proposal and whose sign-off an approval
-represents.
+"acting as" switch (Richard / Dorka) in the menu is **not** a security control;
+it only decides whose name goes on notes.
 
 To (re)provision the account on a fresh project, run
 `supabase/migrations/0003_editor_account.sql.example` with your chosen password.
@@ -142,8 +169,9 @@ npm run typecheck  # types only
 
 ## Notes on the build
 
-- Phone-first (~380px); the editor breaks to the sidebar + two-column layout at
-  900px. Add-item and to-do flows are one-hand usable.
+- Phone-first (~380px): a top bar with a menu drawer, breaking to a sidebar at
+  900px. Explanations live behind `?` buttons and each module's guide, not on
+  the screens (`HELP-01`).
 - Motion is restrained: a check-off tick and the sheet slide-up are the only two
   animated moments, and both respect `prefers-reduced-motion`.
 - Disposition colours are never used alone — every tag pairs its colour with its
