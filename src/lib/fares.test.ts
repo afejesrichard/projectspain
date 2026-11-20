@@ -175,6 +175,16 @@ describe('computeBoard', () => {
     expect(sniperIds([...ok, ...no]).sort()).toEqual(ok.map((x) => x.id).sort())
   })
 
+  it('needs two nights on long weekends too', () => {
+    // 13-15 Mar 2027 (Sat-Mon): Sat→Sun is one night, Sat→Mon and Fri→Sun count
+    const t = (outDate: string, retDate: string) => trip({ party: 'grandparents', outDate, retDate, priceCents: 6000 })
+    const row = (list: Trip[]) => computeBoard(list, [], S, '2026-11-20', NOW).grandparents.find((r) => r.key === 'lw-2027-03-13')!
+    const oneNight = t('2027-03-13', '2027-03-14')
+    expect(row([oneNight]).history).toEqual([])
+    const ok = [t('2027-03-13', '2027-03-15'), t('2027-03-12', '2027-03-14')]
+    expect(row([oneNight, ...ok]).history.map((x) => x.id).sort()).toEqual(ok.map((x) => x.id).sort())
+  })
+
   it('drops family trips over 16 days', () => {
     const long = trip({ outDate: '2026-12-18', retDate: '2027-01-06', priceCents: 1000 })
     const b = computeBoard([long], [], S, '2026-11-20', NOW)
@@ -211,6 +221,8 @@ describe('log form checks', () => {
     expect(checkTripDates('family', '2026-12-04', '2026-12-06', '2026-11-20', S).warnings).toEqual([])
     // grandparents: a one-night weekend hop is called out; Sat→Mon is fine
     expect(checkTripDates('grandparents', '2027-02-13', '2027-02-14', '2026-11-20', S).warnings[0]).toContain('legalább 2 éjszakát')
+    expect(checkTripDates('grandparents', '2027-03-13', '2027-03-14', '2026-11-20', S).warnings[0]).toContain('legalább 2 éjszakát')
+    expect(checkTripDates('grandparents', '2027-03-13', '2027-03-15', '2026-11-20', S).warnings).toEqual([])
     expect(checkTripDates('grandparents', '2027-02-13', '2027-02-15', '2026-11-20', S).warnings).toEqual([])
   })
 })

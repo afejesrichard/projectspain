@@ -230,14 +230,19 @@ export function longWeekends(fromS: string, toS: string, nameFn: (s: string) => 
 
 export const gpWeekends = (fromS: string, toS: string) => longWeekends(fromS, toS, holidayHU)
 
+// Every grandparent visit, long weekend or sniper, is at least two nights: a
+// Saturday-evening-in, Sunday-dawn-out hop is not worth the flights.
+export const GP_MIN_NIGHTS = 2
+
 // Grandparents fly on their own days off: out the evening before the long
-// weekend or on its first day, home on its last or second-to-last day.
+// weekend or on its first day, home on its last or second-to-last day, and
+// staying at least two nights.
 export const gpMatches = (t: Pick<Trip, 'outDate' | 'retDate'>, lw: LongWeekend) =>
   t.outDate >= shift(lw.start, -1) &&
   t.outDate <= lw.start &&
   t.retDate >= shift(lw.end, -1) &&
   t.retDate <= lw.end &&
-  t.retDate > t.outDate
+  daysBetween(t.outDate, t.retDate) >= GP_MIN_NIGHTS
 
 // --- Trip rules ------------------------------------------------------------------------
 export const isGp = (t: Pick<Trip, 'party'>) => t.party === 'grandparents'
@@ -259,13 +264,12 @@ export const tooLong = (t: Trip) => daysBetween(t.outDate, t.retDate) > (isGp(t)
 // ordinary weekend. In on Thursday, Friday or Saturday, home on Sunday or
 // Monday, 2 to 4 nights: Fri→Sun, Sat→Mon, Fri→Mon, Thu→Sun, Thu→Mon.
 // A Saturday-evening-in, Sunday-dawn-out hop (one night) does not count.
-export const SNIPER_MIN_NIGHTS = 2
 
 export const isWeekendTrip = (t: Pick<Trip, 'outDate' | 'retDate'>) => {
   const out = weekday(t.outDate)
   const ret = weekday(t.retDate)
   const nights = daysBetween(t.outDate, t.retDate)
-  return (out === 4 || out === 5 || out === 6) && (ret === 0 || ret === 1) && nights >= SNIPER_MIN_NIGHTS && nights <= 4
+  return (out === 4 || out === 5 || out === 6) && (ret === 0 || ret === 1) && nights >= GP_MIN_NIGHTS && nights <= 4
 }
 
 // --- Watch windows ------------------------------------------------------------------------
@@ -488,7 +492,10 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
       key: `lw-${lw.start}`,
       name: `${fmtDay(lw.start)} – ${fmtDay(lw.end)}`,
       note: names + (lw.bridges.length ? ' · híd ' + lw.bridges.map(fmtDay).join(', ') : ''),
-      targets: [`Érkezés: ${fmtDay(shift(lw.start, -1))} munka után, vagy ${fmtDay(lw.start)}`, `Haza: ${fmtDay(shift(lw.end, -1))} vagy ${fmtDay(lw.end)}`],
+      targets: [
+        `Érkezés: ${fmtDay(shift(lw.start, -1))} munka után, vagy ${fmtDay(lw.start)}`,
+        `Haza: ${fmtDay(shift(lw.end, -1))} vagy ${fmtDay(lw.end)}, legalább 2 éjszaka után`,
+      ],
       avgCents: gpAvg.avg,
       avgAdultCents: gpAvgA,
       n: gpAvg.n,
@@ -646,13 +653,10 @@ export function checkTripDates(party: Party, out: string, ret: string, today: st
   const probe = { id: '', party, outDate: out, retDate: ret } as Trip
   if (party === 'grandparents') {
     const LW = gpWeekends(today, shift(today, 330))
-    if (!LW.some((l) => gpMatches(probe, l))) {
-      if (isWeekendTrip(probe)) {
-        // a proper sniper weekend: nothing to warn about
-      } else if (daysBetween(out, ret) < SNIPER_MIN_NIGHTS && [5, 6].includes(weekday(out)))
-        msgs.push('Egy éjszakás hétvégi út: a mesterlövész legalább 2 éjszakát vár, ezért egyéb dátumként kerül a naplóba.')
-      else msgs.push('Ezek a dátumok nem illeszkednek se magyar hosszú hétvégéhez, se 2 éjszakás hétvégéhez; egyéb dátumként kerül a naplóba.')
-    }
+    if (daysBetween(out, ret) < GP_MIN_NIGHTS)
+      msgs.push('Egy éjszakás látogatás: a nagyszülői utak (hosszú hétvége és mesterlövész) legalább 2 éjszakát várnak, ezért egyéb dátumként kerül a naplóba.')
+    else if (!LW.some((l) => gpMatches(probe, l)) && !isWeekendTrip(probe))
+      msgs.push('Ezek a dátumok nem illeszkednek se magyar hosszú hétvégéhez, se 2 éjszakás hétvégéhez; egyéb dátumként kerül a naplóba.')
   } else {
     const c = W.find((w) => w.key === 'summer')!.camp!
     const Y = c.start.slice(0, 4)
