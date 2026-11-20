@@ -85,7 +85,9 @@ function tileContent(id: ModuleId, today: Date): TileContent {
     return { figure: fmtRange(from, to), sub: 'Programok', dot: 'idle' }
   }
   if (id === 'flights') {
-    return { figure: 'Figyelés', sub: 'Hamarosan az appban', dot: 'idle' }
+    const f = readTile('flights')
+    if (f && f.deals > 0) return { figure: `${f.deals} ajánlat`, sub: 'átlag alatt', dot: 'good' }
+    return { figure: 'Figyelés', sub: f ? `${f.trips} rögzített út` : 'BCN ⇄ BUD', dot: f ? 'live' : 'idle' }
   }
   const cached = readTile('moving')
   return cached
