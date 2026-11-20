@@ -588,14 +588,22 @@ export function ryanairUrl(from: string, to: string, out: string, back: string |
 export const wizzUrl = (from: string, to: string, out: string, back: string | null, a: number, c: number) =>
   `https://wizzair.com/en-gb/booking/select-flight/${from}/${to}/${out}/${back ?? 'null'}/${a}/${c}/0/null`
 
-export const googleFlightsUrl = (from: string, to: string, out: string, back: string | null) =>
-  'https://www.google.com/travel/flights?q=' +
-  encodeURIComponent(`Flights from ${from} to ${to} on ${out}${back ? ' returning ' + back : ''} nonstop`)
+// Every carrier on the same dates, with the whole party, nonstop only, cheapest
+// first. Kayak takes route, dates and passengers in the path, so the search
+// opens filled in. It needs a child's age, not just a count; both airlines
+// charge children from 2 a full seat, so a placeholder age of 5 prices them
+// correctly without the real ages living in the code (PRIV-01).
+const CHILD_AGE_FOR_PRICING = 5
+
+export function kayakUrl(from: string, to: string, out: string, back: string | null, a: number, c: number): string {
+  const kids = c > 0 ? `/children-${Array.from({ length: c }, () => CHILD_AGE_FOR_PRICING).join('-')}` : ''
+  return `https://www.kayak.com/flights/${from}-${to}/${out}${back ? '/' + back : ''}/${a}adults${kids}?sort=price_a&fs=stops=0`
+}
 
 function carrierUrl(carrier: string, from: string, to: string, out: string, back: string | null, a: number, c: number) {
   if (/ryanair/i.test(carrier)) return ryanairUrl(from, to, out, back, a, c)
   if (/wizz/i.test(carrier)) return wizzUrl(from, to, out, back, a, c)
-  return googleFlightsUrl(from, to, out, back)
+  return kayakUrl(from, to, out, back, a, c)
 }
 
 export interface BookingLink {
@@ -613,7 +621,7 @@ export function bookingLinks(t: Trip, s: FareSettings): BookingLink[] {
     links.push({ label: `Oda: ${t.outCarrier}`, href: carrierUrl(t.outCarrier, a, b, t.outDate, null, p.adults, p.children) })
     links.push({ label: `Vissza: ${t.retCarrier}`, href: carrierUrl(t.retCarrier, b, a, t.retDate, null, p.adults, p.children) })
   }
-  links.push({ label: 'Összevetés', href: googleFlightsUrl(a, b, t.outDate, t.retDate) })
+  links.push({ label: 'Kayak: minden ár', href: kayakUrl(a, b, t.outDate, t.retDate, p.adults, p.children) })
   return links
 }
 

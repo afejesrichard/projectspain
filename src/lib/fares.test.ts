@@ -185,12 +185,13 @@ describe('computeBoard', () => {
 describe('booking links', () => {
   it('fills in route, dates and the party', () => {
     const t = trip({ outDate: '2026-12-04', retDate: '2026-12-06', priceCents: 5000 })
-    const [ryanair, compare] = bookingLinks(t, S)
+    const [ryanair, kayak] = bookingLinks(t, S)
     expect(ryanair.href).toContain('originIata=BCN')
     expect(ryanair.href).toContain('adults=2')
     expect(ryanair.href).toContain('children=2')
     expect(ryanair.href).toContain('dateIn=2026-12-06')
-    expect(compare.href).toContain('google.com/travel/flights')
+    expect(kayak.label).toBe('Kayak: minden ár')
+    expect(kayak.href).toBe('https://www.kayak.com/flights/BCN-BUD/2026-12-04/2026-12-06/2adults/children-5-5?sort=price_a&fs=stops=0')
   })
 
   it('splits mixed carriers into two one-way links', () => {
@@ -198,6 +199,8 @@ describe('booking links', () => {
     const links = bookingLinks(t, S)
     expect(links).toHaveLength(3)
     expect(links[1].href).toBe('https://wizzair.com/en-gb/booking/select-flight/BCN/BUD/2026-12-06/null/2/0/0/null')
+    // grandparents: no children segment
+    expect(links[2].href).toBe('https://www.kayak.com/flights/BUD-BCN/2026-12-04/2026-12-06/2adults?sort=price_a&fs=stops=0')
   })
 })
 
