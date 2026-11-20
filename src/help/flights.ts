@@ -9,7 +9,7 @@ export const flightsHelp = {
     title: 'Szabadnapok',
     body: [
       { heading: 'Család (Barcelona)' },
-      'Péntek, hétvége, a spanyol és katalán ünnepek, valamint a La Mercè. A legjobb élő utat ezek közül választja a tábla, ha van ilyen.',
+      'Péntek, hétvége, a spanyol és katalán ünnepek, valamint a La Merced. A legjobb élő utat ezek közül választja a tábla, ha van ilyen.',
       { list: upcomingHolidays(today, 'ES').map(([d, n]) => `${fmtDay(d)} · ${n}`) },
       { heading: 'Nagyszülők (Magyarország)' },
       'A magyar munkaszüneti napok; az ő hosszú hétvégéik adják a nagyszülői táblát. A hídnapokat évente rendelet állapítja meg: keddi vagy csütörtöki ünnepnél a szomszéd szombat gyakran munkanap.',
@@ -49,7 +49,7 @@ export const flightsHelp = {
     title: 'Nagyszülői tábla',
     body: [
       'A hosszú hétvégék a magyar munkanaptárt követik. Egy látogatás akkor számít, ha az előző este vagy az első szabadnapon érkeznek, és az utolsó vagy utolsó előtti napon mennek haza, így nem kell szabadságot kivenniük.',
-      'A hétvégi mesterlövész minden sima hétvégét figyel (péntek bármikor vagy szombat oda, vasárnap haza), és csak 25%-os átlag alatti árnál jelez.',
+      'A hétvégi mesterlövész minden sima hétvégét figyel, de csak legalább 2 éjszakás látogatást: csütörtökön, pénteken vagy szombaton érkeznek, vasárnap vagy hétfőn mennek haza (például péntek–vasárnap vagy szombat–hétfő). A szombat esti érkezés és vasárnap hajnali indulás, egyetlen éjszakával, nem számít. Csak 25%-os átlag alatti árnál jelez.',
       'A hosszú hétvégék átlaga az összes rögzített hosszú hétvégés látogatásból számol, mert egy-egy hétvégére ritkán gyűlik 5 adat.',
     ],
   },
@@ -84,7 +84,7 @@ export const flightsHelp = {
       'Ha az olcsó kategória elfogy, két foglalás (1 felnőtt + 1 gyerek) még megszerezheti az utolsó olcsó helyeket.',
       'Ryanair: az egyik felnőtt ülőhelyet vesz (járatonként kb. 4–10 euró), mellé a 12 év alatti gyerekek ingyen ülnek. Wizz Air: a 14 év alatti gyerek felnőtt mellett ül; fizetés előtt nézd meg az ülésdíjat. A babakocsi és a gyerekülés mindkettőn ingyenes.',
       { heading: 'Mesterlövész' },
-      'A villámakciók (Wizz) és helyakciók (Ryanair) hétköznap nyílnak és 24–48 óráig tartanak: ha jön a riasztás, aznap foglalj. A csendes hónapok a legjobbak: január közepétől március közepéig, november, és szeptember vége–október a hosszú hétvégéken kívül.',
+      'A villámakciók (Wizz) és helyakciók (Ryanair) hétköznap nyílnak és 24–48 óráig tartanak: ha jön a riasztás, aznap foglalj. A péntek délelőtti és déli indulás gyakran a hétvége legolcsóbb helye, és két teljes éjszakát ad. A csendes hónapok a legjobbak: január közepétől március közepéig, november, és szeptember vége–október a hosszú hétvégéken kívül.',
       { heading: 'Budapest felől' },
       'A nagyszülők útját érdemes Budapest indulással és forintban keresni: a magyar piacról gyakran kicsit olcsóbb, és magyar kártyával átváltás nélkül fizethető. Hosszú hétvége előtti este (munka után) gyakran olcsóbb, mint az első nap reggele.',
       'A mindkét országban szabad napok a legjobb látogatások: ezeket korán érdemes lefoglalni.',

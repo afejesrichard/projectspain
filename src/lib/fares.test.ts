@@ -8,6 +8,7 @@ import {
   computeBoard,
   easter,
   gpWeekends,
+  holidayES,
   isOff,
   longWeekends,
   tier,
@@ -55,6 +56,8 @@ describe('calendars', () => {
     expect(isOff('2026-11-20')).toBe(true) // Friday
     expect(isOff('2026-11-24')).toBe(false) // Tuesday
     expect(isOff('2026-12-08')).toBe(true) // Inmaculada, a Tuesday
+    expect(holidayES('2026-12-08')).toBe('Inmaculada Concepción')
+    expect(holidayES('2027-03-26')).toBe('Viernes Santo')
     expect(isOff('2027-03-29')).toBe(true) // Easter Monday
   })
 
@@ -163,6 +166,15 @@ describe('computeBoard', () => {
     expect(b2.alerts.some((a) => a.label === 'Hétvégi mesterlövész')).toBe(true)
   })
 
+  it('counts only weekend visits of at least two nights for the sniper', () => {
+    const fri = '2027-02-12'
+    const t = (outDate: string, retDate: string) => trip({ party: 'grandparents', outDate, retDate, priceCents: 6000 })
+    const sniperIds = (list: Trip[]) => computeBoard(list, [], S, '2026-11-20', NOW).grandparents.find((r) => r.sniper)!.history.map((x) => x.id)
+    const ok = [t(fri, '2027-02-14'), t('2027-02-13', '2027-02-15'), t(fri, '2027-02-15'), t('2027-02-11', '2027-02-14'), t('2027-02-11', '2027-02-15')]
+    const no = [t('2027-02-13', '2027-02-14'), t(fri, '2027-02-13'), t('2027-02-10', '2027-02-14'), t('2027-02-14', '2027-02-16')]
+    expect(sniperIds([...ok, ...no]).sort()).toEqual(ok.map((x) => x.id).sort())
+  })
+
   it('drops family trips over 16 days', () => {
     const long = trip({ outDate: '2026-12-18', retDate: '2027-01-06', priceCents: 1000 })
     const b = computeBoard([long], [], S, '2026-11-20', NOW)
@@ -194,5 +206,8 @@ describe('log form checks', () => {
     expect(checkTripDates('family', '2026-12-06', '2026-12-04', '2026-11-20', S).ok).toBe(false)
     expect(checkTripDates('family', '2026-12-01', '2026-12-03', '2026-11-20', S).warnings).toContain('Az egyik dátum munkanap.')
     expect(checkTripDates('family', '2026-12-04', '2026-12-06', '2026-11-20', S).warnings).toEqual([])
+    // grandparents: a one-night weekend hop is called out; Sat→Mon is fine
+    expect(checkTripDates('grandparents', '2027-02-13', '2027-02-14', '2026-11-20', S).warnings[0]).toContain('legalább 2 éjszakát')
+    expect(checkTripDates('grandparents', '2027-02-13', '2027-02-15', '2026-11-20', S).warnings).toEqual([])
   })
 })
