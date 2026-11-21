@@ -127,6 +127,11 @@ through validated database functions, and nothing else:
 | Weekly family weekend screen | Thu 18:47 Madrid | `weekend_save(jsonb)`: validates the screen, replaces that weekend's row |
 | BCN-BUD fare scan | Mon and Thu 19:47 Madrid | `fare_save(jsonb)`: validates each trip, adds new ids, never updates or deletes |
 
+The weekend screen's instructions are versioned in
+[`docs/weekend-scan-brief.md`](docs/weekend-scan-brief.md): what counts as a
+program (general city fairs, markets and festes majors as well as kids'
+events), the seven search passes, and how multi-week events carry over.
+
 Both need the Supabase connector attached in claude.ai. A malformed run fails
 with a named reason (`WEEKEND_BAD_ITEM`, `FARE_BAD_TRIP`) instead of reaching
 the screens.
