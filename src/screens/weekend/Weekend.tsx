@@ -7,9 +7,11 @@ import { helpFor } from '../../components/Help'
 import { weekendHelp } from '../../help/weekend'
 import {
   DAY_LABEL,
+  alertsCheckedAt,
   directionsUrl,
   fmtDate,
   fmtKm,
+  fmtStamp,
   fmtWeekend,
   readFilters,
   safeLink,
@@ -157,6 +159,9 @@ function AlertStrip({ screen }: { screen: WeekendScreen }) {
             <AlertRow key={i} a={a} />
           ))}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '12px 14px', background: color.paper, borderTop: `1px solid ${color.line}` }}>
+            <div style={{ flexBasis: '100%', fontFamily: font.mono, fontSize: 12, color: color.softInk }}>
+              ellenőrizve: {fmtStamp(alertsCheckedAt(screen))}
+            </div>
             {OFFICIAL.map(([label, href]) => (
               <a
                 key={href}
