@@ -33,6 +33,8 @@ export interface WeekendScreen {
   weekend_from: string
   weekend_to: string
   screened_at: string
+  // Set by the daily warnings check; absent until it has run for this weekend.
+  alerts_checked_at?: string | null
   next_screen: string | null
   alert_status: 'ok' | 'warn'
   alert_title: string
@@ -99,6 +101,26 @@ export function fmtWeekend(from: string, to: string): string {
 
 export function fmtDate(iso: string): string {
   return MONTH_DAY.format(parse(iso))
+}
+
+// When the warnings were last looked at: the daily check, or the weekly scan
+// if that ran later (a rescan replaces the warnings too).
+export function alertsCheckedAt(s: Pick<WeekendScreen, 'screened_at' | 'alerts_checked_at'>): string {
+  const a = s.alerts_checked_at
+  return a && new Date(a).getTime() > new Date(s.screened_at).getTime() ? a : s.screened_at
+}
+
+const STAMP = new Intl.DateTimeFormat('hu-HU', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'Europe/Madrid',
+})
+
+// "nov. 22. 7:43", in Barcelona time whatever the phone is set to.
+export function fmtStamp(iso: string): string {
+  return STAMP.format(new Date(iso))
 }
 
 // Filters are remembered per device; anything unexpected falls back.

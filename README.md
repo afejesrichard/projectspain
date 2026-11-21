@@ -119,15 +119,21 @@ is visible in the Supabase dashboard under Organization → Usage.
 
 ## Scheduled scans
 
-Two scheduled Claude tasks (claude.ai → scheduled tasks) write into the app
+Three scheduled Claude tasks (claude.ai → scheduled tasks) write into the app
 through validated database functions, and nothing else:
 
 | Task | Runs | Writes through |
 | --- | --- | --- |
 | Weekly family weekend screen | Thu 18:47 Madrid | `weekend_save(jsonb)`: validates the screen, replaces that weekend's row |
+| Daily weekend warnings check | Every day 07:43 Madrid | `weekend_alerts_save(jsonb)`: replaces only the warnings of the weekend on screen, never the programs; a no-op when no upcoming weekend is saved yet |
 | BCN-BUD fare scan | Mon and Thu 19:47 Madrid | `fare_save(jsonb)`: validates each trip, adds new ids, never updates or deletes |
 
-Both need the Supabase connector attached in claude.ai. A malformed run fails
+The weekend screen's instructions are versioned in
+[`docs/weekend-scan-brief.md`](docs/weekend-scan-brief.md): what counts as a
+program (general city fairs, markets and festes majors as well as kids'
+events), the seven search passes, and how multi-week events carry over.
+
+All need the Supabase connector attached in claude.ai. A malformed run fails
 with a named reason (`WEEKEND_BAD_ITEM`, `FARE_BAD_TRIP`) instead of reaching
 the screens.
 

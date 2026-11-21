@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { directionsUrl, fmtKm, fmtWeekend, readFilters, safeLink, splitItems, type WeekendItem } from './weekend'
+import { alertsCheckedAt, directionsUrl, fmtStamp, fmtKm, fmtWeekend, readFilters, safeLink, splitItems, type WeekendItem } from './weekend'
 
 const item = (p: Partial<WeekendItem> & Pick<WeekendItem, 'name'>): WeekendItem => ({
   type: 'free',
@@ -67,5 +67,20 @@ describe('readFilters', () => {
     expect(readFilters('{"day":"Sat","zone":"trip"}')).toEqual({ day: 'Sat', zone: 'trip' })
     expect(readFilters('{"day":"Mon","zone":"moon"}')).toEqual({ day: 'all', zone: 'all' })
     expect(readFilters('not json')).toEqual({ day: 'all', zone: 'all' })
+  })
+})
+
+describe('warnings check time', () => {
+  it('uses the daily check when it is the later one', () => {
+    expect(alertsCheckedAt({ screened_at: '2026-11-19T17:50:00Z', alerts_checked_at: '2026-11-21T06:43:00Z' })).toBe('2026-11-21T06:43:00Z')
+  })
+
+  it('falls back to the weekly scan when there is no check, or a rescan came later', () => {
+    expect(alertsCheckedAt({ screened_at: '2026-11-19T17:50:00Z' })).toBe('2026-11-19T17:50:00Z')
+    expect(alertsCheckedAt({ screened_at: '2026-11-21T16:00:00Z', alerts_checked_at: '2026-11-21T06:43:00Z' })).toBe('2026-11-21T16:00:00Z')
+  })
+
+  it('formats the stamp in Barcelona time', () => {
+    expect(fmtStamp('2026-11-22T06:43:00Z')).toMatch(/nov\. 22\..*7:43/)
   })
 })
