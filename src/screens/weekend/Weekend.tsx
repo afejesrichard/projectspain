@@ -7,17 +7,22 @@ import { helpFor } from '../../components/Help'
 import { weekendHelp } from '../../help/weekend'
 import {
   DAY_LABEL,
-  alertsCheckedAt,
   directionsUrl,
   fmtDate,
+  fmtDayLabel,
   fmtKm,
   fmtStamp,
+  fmtTemps,
+  liveWeather,
+  otherNotes,
   fmtWeekend,
   readFilters,
   safeLink,
   splitItems,
   type DayFilter,
   type Filters,
+  type WeatherDay,
+  type WeatherOutlook,
   type WeekendAlert,
   type WeekendItem,
   type WeekendScreen,
@@ -57,10 +62,22 @@ export function Weekend() {
   }
   if (!data.screen) return <EmptyState title="Még nincs átnézett hétvége." hint="Az első lista csütörtök este érkezik." />
 
-  return <Screen screen={data.screen} stale={data.stale} home={data.home?.address ?? null} />
+  return <Screen screen={data.screen} stale={data.stale} home={data.home?.address ?? null} weather={liveWeather(data.weather, data.today)} today={data.today} />
 }
 
-function Screen({ screen, stale, home }: { screen: WeekendScreen; stale: boolean; home: string | null }) {
+function Screen({
+  screen,
+  stale,
+  home,
+  weather,
+  today,
+}: {
+  screen: WeekendScreen
+  stale: boolean
+  home: string | null
+  weather: WeatherOutlook | null
+  today: string
+}) {
   const [filters, setFilters] = useState<Filters>(() => {
     try {
       return readFilters(localStorage.getItem(FILTER_KEY))
@@ -108,7 +125,7 @@ function Screen({ screen, stale, home }: { screen: WeekendScreen; stale: boolean
         </div>
       </header>
 
-      <AlertStrip screen={screen} />
+      <AlertStrip screen={screen} weather={weather} today={today} />
 
       <FilterBar filters={filters} onChange={setFilters} shown={free.length + paid.length} total={screen.items.length} />
 
@@ -118,10 +135,17 @@ function Screen({ screen, stale, home }: { screen: WeekendScreen; stale: boolean
   )
 }
 
-// --- Warning strip: one line, expands to the alerts and the official links ---
-function AlertStrip({ screen }: { screen: WeekendScreen }) {
+// --- Weather strip: one line, expands to the three days, the warnings and the
+// official links. Fed by the daily outlook; the weekly scan only adds notes
+// that are not about weather. Screens saved before the daily check existed
+// still carry their own weather alerts, shown when no outlook is current.
+function AlertStrip({ screen, weather, today }: { screen: WeekendScreen; weather: WeatherOutlook | null; today: string }) {
   const [open, setOpen] = useState(false)
-  const tone = screen.alert_status === 'warn' ? WARN : FREE
+  const status = weather ? weather.status : screen.alert_status
+  // Without a current outlook and without a saved title there is nothing to
+  // vouch for, so the dot is neutral rather than green.
+  const tone = status === 'warn' ? WARN : weather || screen.alert_title ? FREE : color.softInk
+  const rows = weather ? [...weather.alerts, ...otherNotes(screen.alerts)] : screen.alerts
   return (
     <section style={{ border: `1px solid ${color.line}`, background: color.cardWhite, borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 10 }}>
@@ -146,21 +170,28 @@ function AlertStrip({ screen }: { screen: WeekendScreen }) {
           }}
         >
           <span aria-hidden style={{ width: 10, height: 10, borderRadius: 5, background: tone, flex: '0 0 auto' }} />
-          <span style={{ minWidth: 0 }}>{screen.alert_title}</span>
+          <span style={{ minWidth: 0 }}>{weather ? weather.title : screen.alert_title || 'Nincs friss időjárás-ellenőrzés.'}</span>
           <span aria-hidden style={{ marginLeft: 'auto', color: color.softInk, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
             ▾
           </span>
         </button>
         <WeekendHelp id="weekend.alerts" />
       </div>
+      {weather && (
+        <div style={{ borderTop: `1px solid ${color.line}` }}>
+          {weather.days.map((d) => (
+            <DayRow key={d.date} d={d} today={today} />
+          ))}
+        </div>
+      )}
       {open && (
         <div style={{ borderTop: `1px solid ${color.line}` }}>
-          {screen.alerts.map((a, i) => (
+          {rows.map((a, i) => (
             <AlertRow key={i} a={a} />
           ))}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '12px 14px', background: color.paper, borderTop: `1px solid ${color.line}` }}>
             <div style={{ flexBasis: '100%', fontFamily: font.mono, fontSize: 12, color: color.softInk }}>
-              ellenőrizve: {fmtStamp(alertsCheckedAt(screen))}
+              ellenőrizve: {fmtStamp(weather ? weather.checked_at : screen.screened_at)}
             </div>
             {OFFICIAL.map(([label, href]) => (
               <a
@@ -177,6 +208,26 @@ function AlertStrip({ screen }: { screen: WeekendScreen }) {
         </div>
       )}
     </section>
+  )
+}
+
+// One day of the outlook: the day, the temperatures, what to expect.
+function DayRow({ d, today }: { d: WeatherDay; today: string }) {
+  const tone = d.level === 'warn' ? WARN : FREE
+  const temps = fmtTemps(d)
+  const extra = [d.rain_pct != null ? `eső ${Math.round(d.rain_pct)}%` : null, d.gust_kmh != null ? `szél ${Math.round(d.gust_kmh)} km/h` : null].filter(Boolean)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: '2px 12px', padding: '9px 14px', borderTop: `1px solid ${color.hairlineSoft}`, fontSize: 13.5 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: font.mono, fontSize: 12, fontWeight: 700, color: tone, alignSelf: 'start', paddingTop: 2 }}>
+        <span aria-hidden style={{ width: 7, height: 7, borderRadius: 4, background: tone, flex: '0 0 auto' }} />
+        {fmtDayLabel(d.date, today)}
+      </span>
+      <span style={{ minWidth: 0 }}>
+        {temps && <b style={{ marginRight: 8 }}>{temps}</b>}
+        {d.summary}
+      </span>
+      {extra.length > 0 && <span style={{ gridColumn: 2, fontFamily: font.mono, fontSize: 11.5, color: color.softInk }}>{extra.join(' · ')}</span>}
+    </div>
   )
 }
 

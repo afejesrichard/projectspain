@@ -6,8 +6,9 @@ export const weekendHelp = {
   'weekend.alerts': {
     title: 'Figyelmeztetések',
     body: [
-      'A figyelmeztetéseket a csütörtöki átnézés után egy külön feladat minden reggel újra ellenőrzi, a hétvége végéig: a Meteocat, az AEMET és a Protecció Civil figyelmeztetéseit (eső, szél, hideg, hó, tenger, tűz), és Barcelona városi értesítéseit. A programlistához ez nem nyúl. A sáv kinyitva mutatja, mikor volt az utolsó ellenőrzés.',
-      'A zöld pont azt jelenti, hogy a hétvégére nincs aktív figyelmeztetés; a borostyán, hogy van. A sávra koppintva látszanak a részletek és a hivatalos oldalak. Indulás előtt azért érdemes ránézni a Meteocatra.',
+      'Az időjárás a hétvégi listától független: egy külön feladat minden reggel ellenőrzi a Meteocat, az AEMET és a Protecció Civil figyelmeztetéseit (eső, szél, hideg, hó, tenger, tűz) és Barcelona városi értesítéseit, és elmenti a mai és a következő két nap előrejelzését. A hét bármely napján friss.',
+      'A sáv alatt a három nap látszik: hőmérséklet, rövid előrejelzés, eső esélye és széllökés. A zöld pont azt jelenti, hogy arra a napra nincs figyelmeztetés; a borostyán, hogy van. A sávra koppintva látszanak a figyelmeztetések részletei, az utolsó ellenőrzés ideje és a hivatalos oldalak.',
+      'A csütörtöki programátnézés már nem néz időjárást: egyetlen forrás van, a reggeli ellenőrzés. Ha az több napig nem futott le, a sáv szürke ponttal jelzi, hogy nincs friss adat. Indulás előtt azért érdemes ránézni a Meteocatra.',
     ],
   },
   'weekend.free': {

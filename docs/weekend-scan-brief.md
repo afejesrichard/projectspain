@@ -20,6 +20,10 @@ brief now names seven search passes that all have to be done, carries
 multi-week events forward from the previous screen, and asks the run to say
 which passes came back empty.
 
+The scan does not check the weather. Warnings change faster than once a week,
+so a separate daily task (`weather_save`, see the README) is the only weather
+feed; this scan's `alerts` carry non-weather notes only.
+
 ## Instructions
 
 ```text
@@ -44,11 +48,11 @@ HOW TO SEARCH. Use WebSearch (direct page fetches are usually blocked), with the
 
 When sources disagree on dates, prefer the official listing (barcelona.cat, the town hall or the organiser) and say so in the description. Set "verify": true only when this year's dates could not be confirmed by an official or clearly current source. Aim for a full picture rather than a short list: typically 10 to 20 items, nearest ones never left out.
 
-WARNINGS. Check Meteocat, AEMET and Proteccio Civil for active or forecast warnings for the weekend (rain, wind, cold, snow, sea state, fire, INUNCAT/VENTCAT/NEUCAT/PROCICAT) and any Barcelona municipal alerts (for example parks closed for wind). If a warning affects outdoor fairs or markets, say so in the alert.
+NO WEATHER. Do not check the weather or any warnings: a separate daily task owns the forecast and the warnings, and the app shows them from there. Leave alert_status and alert_title out of the JSON. Use "alerts" only for short notes that are not about weather and are worth knowing for this weekend or the next (for example the Christmas lights switch-on date, a road closure for a race, a fair opening next week); it may be an empty array.
 
-SAVE with ONE Supabase execute_sql call: select public.weekend_save($wk${...}$wk$::jsonb); where the JSON is: {"weekend_from":"YYYY-MM-DD" (the Friday), "weekend_to":"YYYY-MM-DD" (the Sunday), "next_screen":"YYYY-MM-DD" (next Thursday), "alert_status":"ok" or "warn", "alert_title": one sentence, "alerts":[{"level":"ok"|"warn"|"info","tag":"Weather"|"Warning"|"Ended"|"Heads-up"|..., "text": one or two sentences, "note": optional short source or advice}], "items":[{"name", "type":"free"|"paid" (a fair or market with free entry is "free"), "zone":"city" (inside Barcelona) or "trip", "km": number (approximate road km from home), "time": e.g. "20 min walk", "L2 metro, 15 min", "45 min drive", "days": subset of ["Fri","Sat","Sun"], "where": venue and area, "desc": one to three sentences, with opening hours and, for multi-week events, the end date, "ages": e.g. "All ages", "3+", "0-12", "price": for paid items e.g. "from €10", "verify": true when this year's dates are not fully confirmed, "link": direct https event page (the official page when there is one), "maps": a Google Maps search query for the venue}]} Write the content in English. Running it again for the same weekend replaces that weekend's row. If the call fails with WEEKEND_BAD_..., the message names the problem (for WEEKEND_BAD_ITEM, the item's name): fix that part and call again. Do not write to any other table.
+SAVE with ONE Supabase execute_sql call: select public.weekend_save($wk${...}$wk$::jsonb); where the JSON is: {"weekend_from":"YYYY-MM-DD" (the Friday), "weekend_to":"YYYY-MM-DD" (the Sunday), "next_screen":"YYYY-MM-DD" (next Thursday), "alerts":[{"level":"info","tag":"Heads-up","text": one or two sentences, "note": optional short source or advice}] (non-weather notes only, may be empty), "items":[{"name", "type":"free"|"paid" (a fair or market with free entry is "free"), "zone":"city" (inside Barcelona) or "trip", "km": number (approximate road km from home), "time": e.g. "20 min walk", "L2 metro, 15 min", "45 min drive", "days": subset of ["Fri","Sat","Sun"], "where": venue and area, "desc": one to three sentences, with opening hours and, for multi-week events, the end date, "ages": e.g. "All ages", "3+", "0-12", "price": for paid items e.g. "from €10", "verify": true when this year's dates are not fully confirmed, "link": direct https event page (the official page when there is one), "maps": a Google Maps search query for the venue}]} Write the content in English. Running it again for the same weekend replaces that weekend's row. If the call fails with WEEKEND_BAD_..., the message names the problem (for WEEKEND_BAD_ITEM, the item's name): fix that part and call again. Do not write to any other table.
 
 Confirm the save with: select weekend_current()->'screen'->>'weekend_from' as weekend, jsonb_array_length(weekend_current()->'screen'->'items') as items;
 
-Reply with a 3-line summary of the highlights and any alerts, plus one line naming which of the seven search passes found nothing. If the save failed after retrying, say so plainly with the error. No em-dashes.
+Reply with a 3-line summary of the highlights, plus one line naming which of the seven search passes found nothing. If the save failed after retrying, say so plainly with the error. No em-dashes.
 ```

@@ -76,15 +76,21 @@ function tileContent(id: ModuleId, today: Date): TileContent {
   if (id === 'weekend') {
     const { from, to } = weekendOf(today)
     const w = readTile('weekend')
+    // The daily outlook, while it still covers today: it speaks for the
+    // weather on any day of the week, ahead of the weekly scan's own state.
+    const wx = readTile('weather')
+    const wxLive = wx && wx.lastDay >= isoDate(today) ? wx : null
+    const wxWarn = wxLive?.status === 'warn'
     // The cached screen counts only while its weekend has not ended.
     if (w && w.to >= isoDate(today)) {
+      const warn = wxLive ? wxWarn : w.alert === 'warn'
       return {
         figure: fmtRange(parseIso(w.from), parseIso(w.to)),
-        sub: `${w.count} program${w.stale ? ' · elavult' : ''}`,
-        dot: w.alert === 'warn' || w.stale ? 'warn' : 'good',
+        sub: `${w.count} program${w.stale ? ' · elavult' : ''}${wxWarn ? ' · időjárási figyelmeztetés' : ''}`,
+        dot: warn || w.stale ? 'warn' : 'good',
       }
     }
-    return { figure: fmtRange(from, to), sub: 'Programok', dot: 'idle' }
+    return { figure: fmtRange(from, to), sub: wxWarn ? 'Időjárási figyelmeztetés' : 'Programok', dot: wxWarn ? 'warn' : 'idle' }
   }
   if (id === 'flights') {
     const f = readTile('flights')

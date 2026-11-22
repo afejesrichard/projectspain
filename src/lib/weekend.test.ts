@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { alertsCheckedAt, directionsUrl, fmtStamp, fmtKm, fmtWeekend, readFilters, safeLink, splitItems, type WeekendItem } from './weekend'
+import { directionsUrl, fmtDayLabel, fmtStamp, fmtTemps, liveWeather, otherNotes, type WeatherOutlook, fmtKm, fmtWeekend, readFilters, safeLink, splitItems, type WeekendItem } from './weekend'
 
 const item = (p: Partial<WeekendItem> & Pick<WeekendItem, 'name'>): WeekendItem => ({
   type: 'free',
@@ -70,17 +70,54 @@ describe('readFilters', () => {
   })
 })
 
-describe('warnings check time', () => {
-  it('uses the daily check when it is the later one', () => {
-    expect(alertsCheckedAt({ screened_at: '2026-11-19T17:50:00Z', alerts_checked_at: '2026-11-21T06:43:00Z' })).toBe('2026-11-21T06:43:00Z')
+describe('daily weather outlook', () => {
+  const outlook: WeatherOutlook = {
+    checked_at: '2026-11-22T06:43:00Z',
+    status: 'warn',
+    title: 'Wind warning today',
+    days: [
+      { date: '2026-11-22', level: 'warn', summary: 'Windy', tmin: 9.4, tmax: 16.6 },
+      { date: '2026-11-23', level: 'ok', summary: 'Calm', tmax: 17 },
+      { date: '2026-11-24', level: 'ok', summary: 'Showers late' },
+    ],
+    alerts: [],
+  }
+
+  it('shows the outlook as saved on the day it was checked', () => {
+    expect(liveWeather(outlook, '2026-11-22')).toEqual(outlook)
   })
 
-  it('falls back to the weekly scan when there is no check, or a rescan came later', () => {
-    expect(alertsCheckedAt({ screened_at: '2026-11-19T17:50:00Z' })).toBe('2026-11-19T17:50:00Z')
-    expect(alertsCheckedAt({ screened_at: '2026-11-21T16:00:00Z', alerts_checked_at: '2026-11-21T06:43:00Z' })).toBe('2026-11-21T16:00:00Z')
+  it('drops days already past, and a warning that went with them', () => {
+    const w = liveWeather(outlook, '2026-11-23')
+    expect(w?.days.map((d) => d.date)).toEqual(['2026-11-23', '2026-11-24'])
+    expect(w?.status).toBe('ok')
   })
 
-  it('formats the stamp in Barcelona time', () => {
+  it('is not shown once every day has gone by, or when missing', () => {
+    expect(liveWeather(outlook, '2026-11-25')).toBeNull()
+    expect(liveWeather(null, '2026-11-22')).toBeNull()
+  })
+
+  it('keeps only the weekly notes that are not about weather', () => {
+    const notes = otherNotes([
+      { level: 'ok', tag: 'Weather', text: 'Sunny' },
+      { level: 'info', tag: 'Ended', text: 'Old warning' },
+      { level: 'warn', tag: 'Warning', text: 'Wind' },
+      { level: 'info', tag: 'Heads-up', text: 'Lights switch on' },
+    ])
+    expect(notes.map((n) => n.text)).toEqual(['Lights switch on'])
+  })
+
+  it('labels days and temperatures', () => {
+    expect(fmtDayLabel('2026-11-22', '2026-11-22')).toBe('ma')
+    expect(fmtDayLabel('2026-11-23', '2026-11-22')).toBe('holnap')
+    expect(fmtDayLabel('2026-11-24', '2026-11-22')).toMatch(/^K\S* 24\.$/)
+    expect(fmtTemps(outlook.days[0])).toBe('9–17°')
+    expect(fmtTemps(outlook.days[1])).toBe('17°')
+    expect(fmtTemps(outlook.days[2])).toBeNull()
+  })
+
+  it('formats the check time in Barcelona time', () => {
     expect(fmtStamp('2026-11-22T06:43:00Z')).toMatch(/nov\. 22\..*7:43/)
   })
 })

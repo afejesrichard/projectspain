@@ -33,8 +33,6 @@ export interface WeekendScreen {
   weekend_from: string
   weekend_to: string
   screened_at: string
-  // Set by the daily warnings check; absent until it has run for this weekend.
-  alerts_checked_at?: string | null
   next_screen: string | null
   alert_status: 'ok' | 'warn'
   alert_title: string
@@ -48,6 +46,27 @@ export interface WeekendCurrent {
   screen: WeekendScreen | null
   stale: boolean
   home: { address: string; label?: string } | null
+  weather?: WeatherOutlook | null
+}
+
+// The daily outlook (weather_save): today and the next two days, checked
+// every morning whatever weekend is on screen.
+export interface WeatherDay {
+  date: string
+  level: 'ok' | 'warn'
+  summary: string
+  tmin?: number
+  tmax?: number
+  rain_pct?: number
+  gust_kmh?: number
+}
+
+export interface WeatherOutlook {
+  checked_at: string
+  status: 'ok' | 'warn'
+  title: string
+  days: WeatherDay[]
+  alerts: WeekendAlert[]
 }
 
 export interface Filters {
@@ -103,11 +122,43 @@ export function fmtDate(iso: string): string {
   return MONTH_DAY.format(parse(iso))
 }
 
-// When the warnings were last looked at: the daily check, or the weekly scan
-// if that ran later (a rescan replaces the warnings too).
-export function alertsCheckedAt(s: Pick<WeekendScreen, 'screened_at' | 'alerts_checked_at'>): string {
-  const a = s.alerts_checked_at
-  return a && new Date(a).getTime() > new Date(s.screened_at).getTime() ? a : s.screened_at
+// The outlook while it still covers today, with the days already past
+// dropped. An outlook whose days have all gone by (the daily check has not
+// run for a while) is not shown at all: the weekly scan's alerts take over.
+export function liveWeather(w: WeatherOutlook | null | undefined, today: string): WeatherOutlook | null {
+  if (!w || !Array.isArray(w.days)) return null
+  const days = w.days.filter((d) => d.date >= today)
+  if (days.length === 0) return null
+  // A warning that only applied to a day now past no longer colours the strip.
+  const status = days.length === w.days.length ? w.status : days.some((d) => d.level === 'warn') ? 'warn' : 'ok'
+  return { ...w, days, status }
+}
+
+// The weekly scan's notes that are not about the weather (an upcoming city
+// event, say) still belong under a current outlook.
+export function otherNotes(alerts: WeekendAlert[]): WeekendAlert[] {
+  return alerts.filter((a) => a.level === 'info' && !['Weather', 'Warning', 'Ended'].includes(a.tag ?? ''))
+}
+
+const WEEKDAY = new Intl.DateTimeFormat('hu-HU', { weekday: 'short' })
+
+// "ma", "holnap", then the weekday: "K 24."
+export function fmtDayLabel(iso: string, today: string): string {
+  const d = parse(iso)
+  const diff = Math.round((d.getTime() - parse(today).getTime()) / 86400000)
+  if (diff === 0) return 'ma'
+  if (diff === 1) return 'holnap'
+  return `${WEEKDAY.format(d)} ${d.getDate()}.`
+}
+
+// "9–17°", or one figure when only one is known.
+export function fmtTemps(d: Pick<WeatherDay, 'tmin' | 'tmax'>): string | null {
+  const lo = d.tmin == null ? null : Math.round(d.tmin)
+  const hi = d.tmax == null ? null : Math.round(d.tmax)
+  if (lo != null && hi != null) return `${lo}–${hi}°`
+  if (hi != null) return `${hi}°`
+  if (lo != null) return `${lo}°`
+  return null
 }
 
 const STAMP = new Intl.DateTimeFormat('hu-HU', {

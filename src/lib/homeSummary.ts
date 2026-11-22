@@ -10,6 +10,7 @@ interface HomeSummary {
   today: string
   budget: Omit<BudgetMonthData, 'receipts'> | null
   weekend: { from: string; to: string; count: number; alert: 'ok' | 'warn'; stale: boolean } | null
+  weather?: { status: 'ok' | 'warn'; lastDay: string } | null
   flights: { trips: number; last_scan: string | null }
   moving: { items: number; boxes: number }
 }
@@ -25,6 +26,7 @@ export async function refreshHomeSummary(): Promise<boolean> {
     writeTile('budget', { month: s.budget.month, spentCents: m.spentCents, budgetCents: m.budgetCents, verdict: m.verdict })
   }
   if (s.weekend) writeTile('weekend', s.weekend)
+  if (s.weather?.lastDay) writeTile('weather', s.weather)
   writeTile('moving', s.moving)
   writeTile('flightsScan', { trips: s.flights.trips, lastScan: s.flights.last_scan })
   return true
