@@ -34,8 +34,11 @@ onSignOut(() => useWeekend.setState(initial()))
 
 // Home tile: the weekend's dates, how many programs, and the warning state.
 useWeekend.subscribe((s, prev) => {
+  if (s.data === prev.data) return
+  const wx = s.data?.weather
+  if (wx?.days?.length) writeTile('weather', { status: wx.status, lastDay: wx.days[wx.days.length - 1].date })
   const sc = s.data?.screen
-  if (!sc || s.data === prev.data) return
+  if (!sc) return
   writeTile('weekend', {
     from: sc.weekend_from,
     to: sc.weekend_to,

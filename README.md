@@ -86,7 +86,7 @@ The public page is the screen strangers judge them by, so private data must neve
 leak there. This is enforced at the database, not just the UI:
 
 - Every base table (`items`, `boxes`, `receipts`, `budget_months`,
-  `budget_lines`, `weekend_screens`, `fare_quotes`, `app_settings`) is
+  `budget_lines`, `weekend_screens`, `weather_outlook`, `fare_quotes`, `app_settings`) is
   **RLS-protected**, and every function runs with the caller's rights.
   Anonymous visitors get **nothing** from them.
 - **No personal data in the repository** (it is public): the home address, pay,
@@ -125,7 +125,7 @@ through validated database functions, and nothing else:
 | Task | Runs | Writes through |
 | --- | --- | --- |
 | Weekly family weekend screen | Thu 18:47 Madrid | `weekend_save(jsonb)`: validates the screen, replaces that weekend's row |
-| Daily weekend warnings check | Every day 07:43 Madrid | `weekend_alerts_save(jsonb)`: replaces only the warnings of the weekend on screen, never the programs; a no-op when no upcoming weekend is saved yet |
+| Daily weather check | Every day 07:43 Madrid | `weather_save(jsonb)`: replaces the outlook (warnings plus the forecast for today and the next two days); independent of the weekend's programs |
 | BCN-BUD fare scan | Mon and Thu 19:47 Madrid | `fare_save(jsonb)`: validates each trip, adds new ids, never updates or deletes |
 
 The weekend screen's instructions are versioned in
