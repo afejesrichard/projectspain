@@ -35,6 +35,7 @@ export const flightsHelp = {
     body: [
       'A riasztás a család teljes árán fut: a gyerekek is teljes ülést fizetnek a Ryanairen és a Wizz Airen. Ha csak a felnőtt ár ismert, a teljes ár annak a többszöröse, „becsült” jelöléssel.',
       'A „legjobb élő út” azokat részesíti előnyben, ahol mindkét járat szabadnapra esik (pénteken, hétvégén vagy katalán ünnepen; a tábor utáni hétfői hazaút is rendben van).',
+      'A hétvégi mesterlövész bármelyik sima hétvégét figyeli a következő 11 hónapban: indulás csütörtökön, pénteken vagy szombaton, haza vasárnap vagy hétfőn, 2–4 éjszakával. Itt a legolcsóbb hétvége nyer, akkor is, ha csütörtököt vagy hétfőt érint (ezt a kártya jelzi). Csak 25%-os átlag alatti árnál riaszt; alatta a többi átlag alatti hétvége áll, hétvégénként a legolcsóbb. Az ünnepi és tábori hétvégék a saját ablakukban maradnak.',
       'Amíg egy ablakban nincs 5 rögzített út, az átlag egy kezdő becslést kever bele. Egy út akkor élő, ha az elmúlt 7 napban látták és még nem indult el. A 16 napnál hosszabb családi utak nem számítanak.',
     ],
   },
@@ -42,7 +43,7 @@ export const flightsHelp = {
     title: 'Szuper ajánlatok',
     body: [
       'Ezek szándékosan figyelmen kívül hagyják a munkanaptárat: egy ekkora kedvezmény megérhet egy szabadnapot.',
-      'Minden utat a saját ablaka átlagához mér (karácsony, húsvét, tábor vagy normál dátumok). Csak a legalább 4 hét múlva induló, legalább 35%-kal olcsóbb családi utak kerülnek ide.',
+      'Minden utat a saját ablaka átlagához mér (karácsony, húsvét, tábor vagy normál dátumok). Csak a legalább 3 hét múlva induló, legalább 35%-kal olcsóbb családi utak kerülnek ide, a hét bármely napjára: így marad idő szabadságot kérni.',
     ],
   },
   'flights.grandparents': {
@@ -59,8 +60,8 @@ export const flightsHelp = {
       {
         list: [
           'Hibásár-zóna: legalább 50%-kal az átlag alatt. Minden ülést most. A fapados jegyek azonnal kiállításra kerülnek, ezek szinte mindig érvényesek maradnak.',
-          'Erős vétel: 25–50%-kal alatta. A nagyszülői mesterlövész is itt jelez. Ünnepi és tábori dátumra ritkán jön vissza.',
-          'Átlag alatt: 0–25%. Ünnepi, tábori és hosszú hétvégés dátumra érdemes venni; a sima nagyszülői hétvégék a mesterlövészre várnak.',
+          'Erős vétel: 25–50%-kal alatta. A hétvégi mesterlövészek (családi és nagyszülői) is itt jeleznek. Ünnepi és tábori dátumra ritkán jön vissza.',
+          'Átlag alatt: 0–25%. Ünnepi, tábori és hosszú hétvégés dátumra érdemes venni; a sima hétvégék a mesterlövészre várnak.',
           'Átlagon vagy fölötte: várj, a keresések tovább figyelik.',
         ],
       },
