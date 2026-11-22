@@ -9,7 +9,9 @@ when opened:
 - **Hétvége (Weekend):** this weekend's family programs and weather or civil
   protection warnings, screened every Thursday evening by a scheduled Claude task.
 - **Repjegy (Flights):** a BCN–BUD fare watch for the family and the
-  grandparents, fed twice a week by a scheduled Claude scan.
+  grandparents, fed twice a week by a scheduled Claude scan. Each party has a
+  weekend sniper (any ordinary weekend, alerts at 25% under its average); the
+  family also gets weekday super deals from three weeks out.
 - **Költözés (Moving):** the relocation inventory and boxes, plus a public,
   read-only catalogue that makes the "for sale" pile easy to share with a link.
 

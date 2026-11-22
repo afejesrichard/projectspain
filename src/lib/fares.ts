@@ -46,6 +46,8 @@ export interface FareSettings {
     summer: number
     gp_long_weekend: number
     gp_sniper: number
+    // optional: until it is set, the family sniper starts from the normal-dates estimate
+    fam_sniper?: number
   }
 }
 
@@ -260,8 +262,8 @@ export const totalIsEstimate = (t: Trip) => !(t.partyPriceCents && t.partyPriceC
 // Family trips over 16 days and grandparent visits over 10 days are ignored.
 export const tooLong = (t: Trip) => daysBetween(t.outDate, t.retDate) > (isGp(t) ? 10 : 16)
 
-// A grandparents' weekend visit worth sniping: at least two nights around one
-// ordinary weekend. In on Thursday, Friday or Saturday, home on Sunday or
+// A weekend trip worth sniping, for either party: at least two nights around
+// one ordinary weekend. Out on Thursday, Friday or Saturday, home on Sunday or
 // Monday, 2 to 4 nights: Fri→Sun, Sat→Mon, Fri→Mon, Thu→Sun, Thu→Mon.
 // A Saturday-evening-in, Sunday-dawn-out hop (one night) does not count.
 
@@ -344,6 +346,15 @@ export function windowsFor(t: Trip, W: Window[]): WindowKey[] {
   }).map((w) => w.key)
 }
 
+// A family weekend for the sniper: a weekend trip outside the festive and camp
+// windows, which are judged against their own averages.
+export const isFamWeekend = (t: Trip, W: Window[]) => !isGp(t) && isWeekendTrip(t) && !windowsFor(t, W).some((k) => FESTIVE.includes(k))
+
+// The Saturday a weekend trip is built around: one weekend, one entry.
+const weekendOf = (t: Pick<Trip, 'outDate'>) => shift(t.outDate, 6 - weekday(t.outDate))
+
+const famSniperSeed = (s: FareSettings) => s.seeds_cents.fam_sniper ?? s.seeds_cents.next4
+
 // Both flights on a family day off (a Monday camp return counts as fine).
 export const workFriendly = (t: Trip, W?: Window[]) =>
   isOff(t.outDate) && (isOff(t.retDate) || (!!W && windowsFor(t, W).includes('summer')))
@@ -406,6 +417,9 @@ export interface Row {
   tier: Tier
   history: Trip[]
   sniper: boolean
+  // family sniper only: further live weekends under the average, cheapest
+  // first, one per weekend
+  others?: { trip: Trip; delta: number }[]
 }
 
 export interface Deal {
@@ -429,6 +443,16 @@ export interface Board {
 }
 
 const WEEK = 7 * DAY
+
+// A weekday deal needs leave, so it has to depart far enough ahead to arrange it.
+export const SUPER_LEAD_DAYS = 21
+// Both snipers stay quiet until a weekend is this far under its average.
+const SNIPER_DROP = -0.25
+// Further cheap weekends listed under the family sniper's best one.
+const SNIPER_OTHERS = 4
+
+const SNIPER_NAME = 'Hétvégi mesterlövész'
+const SNIPER_TARGETS_OUT = 'csütörtök, péntek vagy szombat'
 
 export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today: string, nowMs: number): Board {
   const W = windows(today, s)
@@ -458,8 +482,48 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
     return { key: w.key, name: w.name, note: w.note, targets: [targets(w)], avgCents: avg, avgAdultCents: avgA, n, best, delta, tier: t, history: inW, sniper: false }
   })
 
-  // Super deals: any day of the week, 4+ weeks out, 35%+ under the matching average.
-  const cutoff = shift(today, 28)
+  // Family weekend sniper: any ordinary weekend, out Thu/Fri/Sat and home
+  // Sun/Mon after 2 to 4 nights. Festive and camp trips keep to their own
+  // windows. The cheapest weekend wins even when it touches a working day (the
+  // card says so); it alerts at 25% under, like the grandparents' sniper.
+  {
+    const famWk = fam.filter((t) => isFamWeekend(t, W))
+    const sa = blend(famWk, famSniperSeed(s), total)
+    const saA = blend(famWk, famSniperSeed(s) / 4, (q) => q.priceCents).avg
+    const live = famWk.filter(isLive).sort((a, b) => total(a) - total(b))
+    const best = live[0] ?? null
+    const delta = best ? (total(best) - sa.avg) / sa.avg : null
+    const t = tier(delta, true)
+    if (delta != null && delta <= SNIPER_DROP) alerts.push({ label: SNIPER_NAME, trip: best!, delta, tier: t })
+    const seen = new Set(best ? [weekendOf(best)] : [])
+    const others: { trip: Trip; delta: number }[] = []
+    for (const q of live.slice(1)) {
+      const d = (total(q) - sa.avg) / sa.avg
+      if (d >= 0 || others.length >= SNIPER_OTHERS) break
+      const wk = weekendOf(q)
+      if (seen.has(wk)) continue
+      seen.add(wk)
+      others.push({ trip: q, delta: d })
+    }
+    family.push({
+      key: 'fam-sniper',
+      name: SNIPER_NAME,
+      note: 'bármely sima hétvége · legalább 2 éjszaka · −25%-nál jelez',
+      targets: [`Indulás: ${SNIPER_TARGETS_OUT}`, 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
+      avgCents: sa.avg,
+      avgAdultCents: saA,
+      n: sa.n,
+      best,
+      delta,
+      tier: t,
+      history: famWk,
+      sniper: true,
+      others,
+    })
+  }
+
+  // Super deals: any day of the week, 3+ weeks out, 35%+ under the matching average.
+  const cutoff = shift(today, SUPER_LEAD_DAYS)
   const wname: Record<string, string> = Object.fromEntries(W.map((w) => [w.key, w.key === 'next4' ? 'Normál dátumok' : w.name]))
   const supers = fam
     .filter((t) => isLive(t) && t.outDate >= cutoff)
@@ -512,12 +576,12 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
     const best = cheapest(gpWk.filter(isLive))
     const delta = best ? (total(best) - sa.avg) / sa.avg : null
     const t = tier(delta, true)
-    if (delta != null && delta <= -0.25) alerts.push({ label: 'Hétvégi mesterlövész', trip: best!, delta, tier: t })
+    if (delta != null && delta <= SNIPER_DROP) alerts.push({ label: SNIPER_NAME, trip: best!, delta, tier: t })
     grandparents.push({
       key: 'gp-sniper',
-      name: 'Hétvégi mesterlövész',
+      name: SNIPER_NAME,
       note: 'bármely sima hétvége · legalább 2 éjszaka · −25%-nál jelez',
-      targets: ['Érkezés: csütörtök, péntek vagy szombat', 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
+      targets: [`Érkezés: ${SNIPER_TARGETS_OUT}`, 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
       avgCents: sa.avg,
       avgAdultCents: saA,
       n: sa.n,
@@ -557,6 +621,7 @@ export function windowLabel(t: Trip, board: Board): string {
   const names: Record<string, string> = Object.fromEntries(W.map((w) => [w.key, w.name]))
   const ks = windowsFor(t, W).map((k) => names[k])
   if (t.outDate >= W[0].start && t.outDate <= W[0].end) ks.unshift(names.next4)
+  if (isFamWeekend(t, W)) ks.push('Hétvége')
   return ks.join(', ') || 'Normál dátumok'
 }
 

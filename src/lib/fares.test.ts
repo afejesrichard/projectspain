@@ -128,7 +128,7 @@ describe('tiers and averages', () => {
 })
 
 describe('computeBoard', () => {
-  it('flags a super deal: any weekday, 4+ weeks out, 35%+ under its window', () => {
+  it('flags a super deal: any weekday, 3+ weeks out, 35%+ under its window', () => {
     // A Tuesday-to-Thursday trip in February: normal dates, needs leave.
     const cheap = trip({ outDate: '2027-02-09', retDate: '2027-02-11', priceCents: 5000 })
     const b = computeBoard([cheap], [], S, '2026-11-20', NOW)
@@ -138,6 +138,50 @@ describe('computeBoard', () => {
     expect(b.supers[0].delta).toBeCloseTo(200 / 360 - 1)
     expect(b.supers[0].windowName).toBe('Normál dátumok')
     expect(b.alerts.map((a) => a.trip.id)).toContain(cheap.id)
+  })
+
+  it('takes weekday super deals from three weeks out, not sooner', () => {
+    // Tue→Thu, today 20 Nov: 21 days out is 11 Dec
+    const soon = trip({ outDate: '2026-12-08', retDate: '2026-12-10', priceCents: 5000 })
+    const ok = trip({ outDate: '2026-12-15', retDate: '2026-12-17', priceCents: 5000 })
+    const b = computeBoard([soon, ok], [], S, '2026-11-20', NOW)
+    expect(b.superCutoff).toBe('2026-12-11')
+    expect(b.supers.map((x) => x.trip.id)).toEqual([ok.id])
+  })
+
+  it('fires the family weekend sniper only at 25% under', () => {
+    const sniper = (list: Trip[]) => computeBoard(list, [], S, '2026-11-20', NOW)
+    // Fri→Sun in February, 4 x 80 = 320: avg (400*4 + 320)/5 = 384 → −16.7%: hold
+    const b1 = sniper([trip({ outDate: '2027-02-12', retDate: '2027-02-14', priceCents: 8000 })])
+    const r1 = b1.family.find((r) => r.key === 'fam-sniper')!
+    expect(r1.sniper).toBe(true)
+    expect(r1.tier.key).toBe('flat')
+    expect(b1.alerts.some((a) => a.label === 'Hétvégi mesterlövész')).toBe(false)
+    // 4 x 50 = 200: avg 360 → −44%
+    const b2 = sniper([trip({ outDate: '2027-02-12', retDate: '2027-02-14', priceCents: 5000 })])
+    expect(b2.family.find((r) => r.key === 'fam-sniper')!.tier.key).toBe('strong')
+    expect(b2.alerts.some((a) => a.label === 'Hétvégi mesterlövész')).toBe(true)
+  })
+
+  it('keeps festive weekends and weekday trips out of the family sniper', () => {
+    const wk = trip({ outDate: '2027-02-12', retDate: '2027-02-14', priceCents: 6000 })
+    const thuMon = trip({ outDate: '2027-02-18', retDate: '2027-02-22', priceCents: 6000 })
+    const xmas = trip({ outDate: '2026-12-18', retDate: '2026-12-20', priceCents: 6000 })
+    const weekdays = trip({ outDate: '2027-02-09', retDate: '2027-02-11', priceCents: 6000 })
+    const oneNight = trip({ outDate: '2027-02-13', retDate: '2027-02-14', priceCents: 6000 })
+    const gp = trip({ party: 'grandparents', outDate: '2027-02-12', retDate: '2027-02-14', priceCents: 6000 })
+    const row = computeBoard([wk, thuMon, xmas, weekdays, oneNight, gp], [], S, '2026-11-20', NOW).family.find((r) => r.key === 'fam-sniper')!
+    expect(row.history.map((x) => x.id).sort()).toEqual([wk.id, thuMon.id].sort())
+  })
+
+  it('lists the other cheap weekends under the sniper, one per weekend', () => {
+    const best = trip({ outDate: '2027-02-12', retDate: '2027-02-14', priceCents: 4000 })
+    const sameWeekend = trip({ outDate: '2027-02-13', retDate: '2027-02-15', priceCents: 4500 })
+    const second = trip({ outDate: '2027-03-05', retDate: '2027-03-07', priceCents: 5000 })
+    const dear = trip({ outDate: '2027-04-16', retDate: '2027-04-18', priceCents: 20000 })
+    const row = computeBoard([dear, second, sameWeekend, best], [], S, '2026-11-20', NOW).family.find((r) => r.key === 'fam-sniper')!
+    expect(row.best?.id).toBe(best.id)
+    expect(row.others!.map((o) => o.trip.id)).toEqual([second.id])
   })
 
   it('ignores trips not seen for a week or already departed', () => {

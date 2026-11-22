@@ -333,11 +333,54 @@ function BoardCard({ row, board, settings, legend }: { row: Row; board: Board; s
           <Legs trip={best} />
           {!friendly && <div style={{ fontSize: 12, color: color.throw }}>munkanapot érint</div>}
           <Booking trip={best} settings={settings} />
+          {!!row.others?.length && <OtherWeekends list={row.others} board={board} settings={settings} />}
         </div>
       ) : (
         <div style={{ fontSize: 12.5, color: color.softInk }}>7 napon belül nem látott élő utat</div>
       )}
     </article>
+  )
+}
+
+// Further cheap weekends under the family sniper's best one: one line each.
+function OtherWeekends({ list, board, settings }: { list: NonNullable<Row['others']>; board: Board; settings: FareSettings }) {
+  return (
+    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ fontFamily: font.mono, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: color.softInk }}>
+        További olcsó hétvégék
+      </div>
+      {list.map(({ trip, delta }) => {
+        const link = bookingLinks(trip, settings)[0]
+        return (
+          <a
+            key={trip.id}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 8,
+              flexWrap: 'wrap',
+              padding: '7px 0',
+              borderTop: `1px solid ${color.hairlineSoft}`,
+              fontFamily: font.mono,
+              fontSize: 12,
+              color: color.ink,
+              textDecoration: 'none',
+            }}
+          >
+            <span>
+              {fmtDay(trip.outDate)} – {fmtDay(trip.retDate)}
+            </span>
+            {!workFriendly(trip, board.windows) && <span style={{ color: color.throw }}>munkanap</span>}
+            <span style={{ marginLeft: 'auto', fontWeight: 700 }}>{fmtEur(totalCents(trip, settings))}</span>
+            <span style={{ fontWeight: 700, color: color.sell }}>{Math.round(delta * 100)}%</span>
+            <span style={{ color: color.keep }}>↗</span>
+          </a>
+        )
+      })}
+    </div>
   )
 }
 
