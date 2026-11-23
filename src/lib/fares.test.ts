@@ -229,6 +229,46 @@ describe('computeBoard', () => {
     expect(row([oneNight, ...ok]).history.map((x) => x.id).sort()).toEqual(ok.map((x) => x.id).sort())
   })
 
+  it('holds grandparent visits to their flight times', () => {
+    // 13-15 Mar 2027 (Sat-Mon). Friday evening in is ideal; Saturday must land by 12:30.
+    const t = (outDate: string, outArr: string, retDate: string, retDep: string) =>
+      trip({ party: 'grandparents', outDate, retDate, outArr, retDep, priceCents: 6000 })
+    const row = (list: Trip[]) => computeBoard(list, [], S, '2026-11-20', NOW).grandparents.find((r) => r.key === 'lw-2027-03-13')!
+    const friEvening = t('2027-03-12', '22:40', '2027-03-15', '18:50')
+    const satMorning = t('2027-03-13', '11:35', '2027-03-15', '18:50')
+    const satEvening = t('2027-03-13', '20:10', '2027-03-15', '18:50')
+    const sunMorningHome = t('2027-03-12', '22:40', '2027-03-14', '11:40')
+    const dawnHome = t('2027-03-12', '22:40', '2027-03-15', '05:55')
+    const ids = row([friEvening, satMorning, satEvening, sunMorningHome, dawnHome]).history.map((x) => x.id).sort()
+    expect(ids).toEqual([friEvening.id, satMorning.id].sort())
+  })
+
+  it('prefers the last day and an evening return over a cheaper earlier one', () => {
+    const t = (retDate: string, retDep: string, priceCents: number) =>
+      trip({ party: 'grandparents', outDate: '2027-03-12', outArr: '22:40', retDate, retDep, priceCents })
+    const row = (list: Trip[]) => computeBoard(list, [], S, '2026-11-20', NOW).grandparents.find((r) => r.key === 'lw-2027-03-13')!
+    const sunEvening = t('2027-03-14', '18:50', 4000)
+    const monAfternoon = t('2027-03-15', '14:05', 5000)
+    const monEvening = t('2027-03-15', '18:50', 7000)
+    const all = row([sunEvening, monAfternoon, monEvening])
+    expect(all.best?.id).toBe(monEvening.id)
+    expect(all.caveat).toBeUndefined()
+    const noEvening = row([sunEvening, monAfternoon])
+    expect(noEvening.best?.id).toBe(monAfternoon.id)
+    expect(noEvening.caveat).toBe('délutáni hazaút: rövid utolsó nap')
+    expect(row([sunEvening]).caveat).toBe('nem az utolsó napon indul haza')
+  })
+
+  it('applies the same times to the grandparents sniper', () => {
+    const t = (outDate: string, outArr: string, retDate: string, retDep: string) =>
+      trip({ party: 'grandparents', outDate, retDate, outArr, retDep, priceCents: 6000 })
+    const friSun = t('2027-02-12', '22:40', '2027-02-14', '18:50')
+    const satLate = t('2027-02-13', '20:10', '2027-02-15', '18:50')
+    const dawn = t('2027-02-12', '22:40', '2027-02-14', '06:10')
+    const row = computeBoard([friSun, satLate, dawn], [], S, '2026-11-20', NOW).grandparents.find((r) => r.sniper)!
+    expect(row.history.map((x) => x.id)).toEqual([friSun.id])
+  })
+
   it('drops family trips over 16 days', () => {
     const long = trip({ outDate: '2026-12-18', retDate: '2027-01-06', priceCents: 1000 })
     const b = computeBoard([long], [], S, '2026-11-20', NOW)

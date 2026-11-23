@@ -50,7 +50,8 @@ export const flightsHelp = {
     title: 'Nagyszülői tábla',
     body: [
       'A hosszú hétvégék a magyar munkanaptárt követik. Egy látogatás akkor számít, ha az előző este vagy az első szabadnapon érkeznek, az utolsó vagy utolsó előtti napon mennek haza, így nem kell szabadságot kivenniük, és legalább 2 éjszakát töltenek itt. Az egy éjszakás látogatás (például szombat este be, vasárnap hajnalban ki) itt sem számít.',
-      'A hétvégi mesterlövész minden sima hétvégét figyel, de csak legalább 2 éjszakás látogatást: csütörtökön, pénteken vagy szombaton érkeznek, vasárnap vagy hétfőn mennek haza (például péntek–vasárnap vagy szombat–hétfő). A szombat esti érkezés és vasárnap hajnali indulás, egyetlen éjszakával, nem számít. Csak 25%-os átlag alatti árnál jelez.',
+      'A járatok ideje is számít, hogy a napok tényleg együtt teljenek. Az előző esti érkezés a legjobb; ha az első szabadnapon jönnek, 12:30-ig le kell szállniuk. A 12:30 előtt induló hazaút nem számít, mert elviszi az utolsó napot. A tábla azt az utat választja, amelyik a hosszú hétvége utolsó napján, este (17:00-tól) indul haza; ha ilyen nincs, az utolsó nap délutánja, majd az előző nap következik, és a kártya jelzi, miből enged.',
+      'A hétvégi mesterlövész minden sima hétvégét figyel, de csak legalább 2 éjszakás látogatást: csütörtökön vagy pénteken, vagy szombaton 12:30-ig érkeznek, vasárnap vagy hétfőn mennek haza, lehetőleg este, 12:30 előtt soha. Csak 25%-os átlag alatti árnál jelez.',
       'A hosszú hétvégék átlaga az összes rögzített hosszú hétvégés látogatásból számol, mert egy-egy hétvégére ritkán gyűlik 5 adat.',
     ],
   },

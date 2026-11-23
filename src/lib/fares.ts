@@ -236,15 +236,46 @@ export const gpWeekends = (fromS: string, toS: string) => longWeekends(fromS, to
 // Saturday-evening-in, Sunday-dawn-out hop is not worth the flights.
 export const GP_MIN_NIGHTS = 2
 
+// A visit is for time together, so flight times count as well as dates. Coming
+// the evening before the first day off is ideal; flying on that day itself, they
+// land by 12:30. A return before 12:30 throws the last day away and does not
+// count at all; from 17:00 it is an evening return, which is what we want.
+// "HH:MM" strings compare correctly as text. An unknown time is not held
+// against a trip here: the card flags it instead.
+export const GP_LAND_BY = '12:30'
+export const GP_LEAVE_FROM = '12:30'
+export const GP_EVENING = '17:00'
+
+type GpProbe = Pick<Trip, 'outDate' | 'retDate'> & Partial<Pick<Trip, 'outArr' | 'retDep'>>
+
+export const gpTimesOK = (t: GpProbe, firstDayOff: string) =>
+  !(t.outDate >= firstDayOff && !!t.outArr && t.outArr > GP_LAND_BY) && !(!!t.retDep && t.retDep < GP_LEAVE_FROM)
+
 // Grandparents fly on their own days off: out the evening before the long
-// weekend or on its first day, home on its last or second-to-last day, and
-// staying at least two nights.
-export const gpMatches = (t: Pick<Trip, 'outDate' | 'retDate'>, lw: LongWeekend) =>
+// weekend or on its first morning, home on its last day (the day before only
+// as a fallback, see gpRank), staying at least two nights.
+export const gpMatches = (t: GpProbe, lw: LongWeekend) =>
   t.outDate >= shift(lw.start, -1) &&
   t.outDate <= lw.start &&
   t.retDate >= shift(lw.end, -1) &&
   t.retDate <= lw.end &&
-  daysBetween(t.outDate, t.retDate) >= GP_MIN_NIGHTS
+  daysBetween(t.outDate, t.retDate) >= GP_MIN_NIGHTS &&
+  gpTimesOK(t, lw.start)
+
+// How well a visit uses its days: going home on the last day off beats the day
+// before, and an evening return beats an afternoon one. The best live trip is
+// the cheapest among the highest rank on offer.
+export const gpRank = (t: GpProbe, lastDay: string | null) =>
+  (lastDay == null || t.retDate >= lastDay ? 2 : 0) + (!!t.retDep && t.retDep >= GP_EVENING ? 1 : 0)
+
+// What the best trip gives up, for the card.
+export function gpCaveat(t: GpProbe, lastDay: string | null): string | undefined {
+  const c: string[] = []
+  if (lastDay != null && t.retDate < lastDay) c.push('nem az utolsó napon indul haza')
+  if (!t.retDep) c.push('hazaút ideje ismeretlen')
+  else if (t.retDep < GP_EVENING) c.push('délutáni hazaút: rövid utolsó nap')
+  return c.length ? c.join(' · ') : undefined
+}
 
 // --- Trip rules ------------------------------------------------------------------------
 export const isGp = (t: Pick<Trip, 'party'>) => t.party === 'grandparents'
@@ -273,6 +304,13 @@ export const isWeekendTrip = (t: Pick<Trip, 'outDate' | 'retDate'>) => {
   const nights = daysBetween(t.outDate, t.retDate)
   return (out === 4 || out === 5 || out === 6) && (ret === 0 || ret === 1) && nights >= GP_MIN_NIGHTS && nights <= 4
 }
+
+// The Saturday a weekend trip is built around: one weekend, one entry.
+const weekendOf = (t: Pick<Trip, 'outDate'>) => shift(t.outDate, 6 - weekday(t.outDate))
+
+// The grandparents' ordinary weekend: the same days, plus their flight times
+// (a Saturday arrival lands by 12:30, no return before 12:30).
+export const isGpWeekend = (t: GpProbe) => isWeekendTrip(t) && gpTimesOK(t, weekendOf(t))
 
 // --- Watch windows ------------------------------------------------------------------------
 export type WindowKey = 'next4' | 'christmas' | 'easter' | 'summer'
@@ -350,9 +388,6 @@ export function windowsFor(t: Trip, W: Window[]): WindowKey[] {
 // windows, which are judged against their own averages.
 export const isFamWeekend = (t: Trip, W: Window[]) => !isGp(t) && isWeekendTrip(t) && !windowsFor(t, W).some((k) => FESTIVE.includes(k))
 
-// The Saturday a weekend trip is built around: one weekend, one entry.
-const weekendOf = (t: Pick<Trip, 'outDate'>) => shift(t.outDate, 6 - weekday(t.outDate))
-
 const famSniperSeed = (s: FareSettings) => s.seeds_cents.fam_sniper ?? s.seeds_cents.next4
 
 // Both flights on a family day off (a Monday camp return counts as fine).
@@ -417,6 +452,9 @@ export interface Row {
   tier: Tier
   history: Trip[]
   sniper: boolean
+  // grandparents only: what the best live trip gives up (an earlier day home,
+  // an afternoon return, an unknown time)
+  caveat?: string
   // family sniper only: further live weekends under the average, cheapest
   // first, one per weekend
   others?: { trip: Trip; delta: number }[]
@@ -452,7 +490,6 @@ const SNIPER_DROP = -0.25
 const SNIPER_OTHERS = 4
 
 const SNIPER_NAME = 'Hétvégi mesterlövész'
-const SNIPER_TARGETS_OUT = 'csütörtök, péntek vagy szombat'
 
 export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today: string, nowMs: number): Board {
   const W = windows(today, s)
@@ -509,7 +546,7 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
       key: 'fam-sniper',
       name: SNIPER_NAME,
       note: 'bármely sima hétvége · legalább 2 éjszaka · −25%-nál jelez',
-      targets: [`Indulás: ${SNIPER_TARGETS_OUT}`, 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
+      targets: ['Indulás: csütörtök, péntek vagy szombat', 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
       avgCents: sa.avg,
       avgAdultCents: saA,
       n: sa.n,
@@ -540,13 +577,18 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
   // Grandparents: Hungarian long weekends share one pooled average.
   const LW = gpWeekends(today, shift(today, 330)).slice(0, 8)
   const gpLW = gps.filter((t) => LW.some((l) => gpMatches(t, l)))
-  const gpWk = gps.filter((t) => isWeekendTrip(t) && !LW.some((l) => gpMatches(t, l)))
+  const gpWk = gps.filter((t) => isGpWeekend(t) && !LW.some((l) => gpMatches(t, l)))
+  // The cheapest among the trips that use their days best.
+  const gpBest = (list: Trip[], lastDay: string | null) => {
+    const top = Math.max(...list.map((t) => gpRank(t, lastDay)))
+    return cheapest(list.filter((t) => gpRank(t, lastDay) === top))
+  }
   const gpAvg = blend(gpLW, s.seeds_cents.gp_long_weekend, total)
   const gpAvgA = blend(gpLW, s.seeds_cents.gp_long_weekend / 2, (q) => q.priceCents).avg
 
   const grandparents: Row[] = LW.map((lw) => {
     const inW = gps.filter((t) => gpMatches(t, lw))
-    const best = cheapest(inW.filter(isLive))
+    const best = gpBest(inW.filter(isLive), lw.end)
     const delta = best ? (total(best) - gpAvg.avg) / gpAvg.avg : null
     const t = tier(delta, false)
     const label = `Hosszú hétvége ${fmtShort(lw.start)} – ${fmtShort(lw.end)}`
@@ -557,9 +599,10 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
       name: `${fmtDay(lw.start)} – ${fmtDay(lw.end)}`,
       note: names + (lw.bridges.length ? ' · híd ' + lw.bridges.map(fmtDay).join(', ') : ''),
       targets: [
-        `Érkezés: ${fmtDay(shift(lw.start, -1))} munka után, vagy ${fmtDay(lw.start)}`,
-        `Haza: ${fmtDay(shift(lw.end, -1))} vagy ${fmtDay(lw.end)}, legalább 2 éjszaka után`,
+        `Érkezés: ${fmtDay(shift(lw.start, -1))} munka után, vagy ${fmtDay(lw.start)} 12:30-ig`,
+        `Haza: ${fmtDay(lw.end)} este (17:00-tól); ${fmtDay(shift(lw.end, -1))} csak ha nincs jobb`,
       ],
+      caveat: best ? gpCaveat(best, lw.end) : undefined,
       avgCents: gpAvg.avg,
       avgAdultCents: gpAvgA,
       n: gpAvg.n,
@@ -573,7 +616,7 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
   {
     const sa = blend(gpWk, s.seeds_cents.gp_sniper, total)
     const saA = blend(gpWk, s.seeds_cents.gp_sniper / 2, (q) => q.priceCents).avg
-    const best = cheapest(gpWk.filter(isLive))
+    const best = gpBest(gpWk.filter(isLive), null)
     const delta = best ? (total(best) - sa.avg) / sa.avg : null
     const t = tier(delta, true)
     if (delta != null && delta <= SNIPER_DROP) alerts.push({ label: SNIPER_NAME, trip: best!, delta, tier: t })
@@ -581,7 +624,7 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
       key: 'gp-sniper',
       name: SNIPER_NAME,
       note: 'bármely sima hétvége · legalább 2 éjszaka · −25%-nál jelez',
-      targets: [`Érkezés: ${SNIPER_TARGETS_OUT}`, 'Haza: vasárnap vagy hétfő, legalább 2 éjszaka után'],
+      targets: ['Érkezés: csütörtök vagy péntek, vagy szombat 12:30-ig', 'Haza: vasárnap vagy hétfő este (17:00-tól), 12:30 előtt soha'],
       avgCents: sa.avg,
       avgAdultCents: saA,
       n: sa.n,
@@ -590,6 +633,7 @@ export function computeBoard(trips: Trip[], legs: Leg[], s: FareSettings, today:
       tier: t,
       history: gpWk,
       sniper: true,
+      caveat: best ? gpCaveat(best, null) : undefined,
     })
   }
 
@@ -616,7 +660,7 @@ export function windowLabel(t: Trip, board: Board): string {
   if (isGp(t)) {
     const LW = gpWeekends(board.today, shift(board.today, 330)).slice(0, 8)
     const lw = LW.find((l) => gpMatches(t, l))
-    return lw ? `Hosszú hétvége ${fmtShort(lw.start)} – ${fmtShort(lw.end)}` : isWeekendTrip(t) ? 'Hétvége' : 'Egyéb dátum'
+    return lw ? `Hosszú hétvége ${fmtShort(lw.start)} – ${fmtShort(lw.end)}` : isGpWeekend(t) ? 'Hétvége' : 'Egyéb dátum'
   }
   const names: Record<string, string> = Object.fromEntries(W.map((w) => [w.key, w.name]))
   const ks = windowsFor(t, W).map((k) => names[k])

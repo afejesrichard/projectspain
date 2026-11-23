@@ -332,6 +332,7 @@ function BoardCard({ row, board, settings, legend }: { row: Row; board: Board; s
           </div>
           <Legs trip={best} />
           {!friendly && <div style={{ fontSize: 12, color: color.throw }}>munkanapot érint</div>}
+          {row.caveat && <div style={{ fontSize: 12, color: color.throw }}>{row.caveat}</div>}
           <Booking trip={best} settings={settings} />
           {!!row.others?.length && <OtherWeekends list={row.others} board={board} settings={settings} />}
         </div>
@@ -474,9 +475,10 @@ function Sparkline({ points, avg, settings }: { points: Trip[]; avg: number; set
   const vals = [...pts.map((x) => x.v), avg]
   const lo = Math.min(...vals) * 0.92
   const hi = Math.max(...vals) * 1.08
-  const t0 = pts[0].t
-  const t1 = pts[pts.length - 1].t
-  const x = (t: number) => (t1 === t0 ? w / 2 : p + ((t - t0) / (t1 - t0)) * (w - 2 * p))
+  // One even step per scan, oldest on the left and newest on the right: by the
+  // calendar, a few scans days apart would crowd one edge and leave a long gap.
+  const steps = [...new Set(pts.map((q) => q.t))]
+  const x = (t: number) => (steps.length === 1 ? w / 2 : p + (steps.indexOf(t) / (steps.length - 1)) * (w - 2 * p))
   const y = (v: number) => h - p - ((v - lo) / (hi - lo || 1)) * (h - 2 * p)
   const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)} ${y(q.v).toFixed(1)}`).join(' ')
   return (
