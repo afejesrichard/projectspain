@@ -84,6 +84,17 @@ Rules that must survive any later rewrite. Each is marked in code with a
   `supabase/migrations/0012_budget_rate_fallback.sql` (the current
   definition).
 
+- **INVARIANT [BUG-S01]**: a subscription receipt is counted on its auto
+  line only, never also in Other. A receipt item with `sub="subscription"`
+  maps to the auto line of its month named by its `@line` attribute, else the
+  one whose key or label equals the merchant name (case-insensitive, exact);
+  with no match it stays in Other. An auto line with receipts shows their
+  converted sum; one without still fills from `due_day`, because most
+  subscriptions are never logged. The month total adds only that fallback on
+  top of logged receipts. Enforced in
+  `supabase/migrations/0018_budget_subscription_match.sql` and
+  `src/lib/budget.ts` (`summarizeMonth`).
+
 - **INVARIANT [BUD-02]** — the Budget module never writes to receipts. Its
   functions only read them, and its store writes only `budget_months` and
   `budget_lines`. Enforced in `supabase/migrations/0011_budget_functions.sql`

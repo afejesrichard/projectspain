@@ -10,7 +10,7 @@ export const budgetHelp = {
       {
         list: [
           'A fix és egyenetlen sorok (lakbér, rezsi, egyszeri tételek, menza) a keretük és az eddigi költés közül a nagyobbal zárnak.',
-          'Az előfizetések a terhelés napjától számítanak elköltöttnek, és a hónap végére mind beszámít.',
+          'Egy előfizetés a nyugtája szerinti összeggel számít, ha van nyugtája; ha nincs, a terhelés napjától a teljes összeggel. A hónap végére mind beszámít.',
           'Az ütemezett mindennapi sorok a hónap saját tempója és a keret tempója közti átlaggal folytatódnak. Minél később járunk a hónapban, annál többet számít a saját tempó.',
           'Az utazási tartalék a tartalék és a tényleges foglalás közül a nagyobbal zár.',
         ],
@@ -33,7 +33,7 @@ export const budgetHelp = {
   'month.subs': {
     title: 'Előfizetések',
     body: [
-      'Az előfizetések nem jönnek nyugtaként. Mindegyik a beállított terhelési napjától számít elköltöttnek, a teljes összegével. A szám az eddig terhelteket mutatja, mellette az összes havi előfizetést.',
+      'Ha egy előfizetésnek van nyugtája a hónapban, a nyugta tényleges összege számít a saját során (forintnál az árfolyamkülönbség is látszik), és nem kerül az Egyéb sorba is. Ha nincs nyugtája, a beállított terhelési napjától a teljes összegével számít elköltöttnek. A szám az eddig terhelteket mutatja, mellette az összes havi előfizetést.',
     ],
   },
   'month.headroom': {
@@ -54,7 +54,7 @@ export const budgetHelp = {
     title: 'Halmozott költés',
     body: [
       'A naponta összeadódó költés a havi keretig húzott egyenes mellett. A lakbér a hónap elején jön, ezért a görbe magasan indul, és jó esetben az egyenes alá laposodik.',
-      'A görbe csak a rögzített nyugtákat számolja; az előfizetések a fenti összesítőkben vannak benne.',
+      'A görbe csak a rögzített nyugtákat számolja, a nyugtával rögzített előfizetésekkel együtt; a nyugta nélküli előfizetések a fenti összesítőkben vannak benne.',
     ],
   },
   'month.everyday': {
@@ -76,7 +76,7 @@ export const budgetHelp = {
           'Fix: a keret és az eddigi költés közül a nagyobbal zár (lakbér, rezsi, egyszeri tételek).',
           'Egyenetlen: ugyanígy zár, de nagyobb, ritkább tételekből áll (például a menza).',
           'Ütemezett: a hónap tempója és a keret tempója közti átlaggal folytatódik (élelmiszer, közlekedés).',
-          'Előfizetés: nincs nyugtája; a terhelés napjától a teljes összeg elköltöttnek számít.',
+          'Előfizetés: ha van nyugtája, annak összegével számít; ha nincs, a terhelés napjától a teljes összeg elköltöttnek számít.',
         ],
       },
     ],

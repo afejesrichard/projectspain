@@ -25,6 +25,8 @@ export type ReceiptSource = 'photo' | 'text' | 'manual'
 export type ReceiptConfidence = 'high' | 'medium' | 'low'
 
 const SOURCES: ReceiptSource[] = ['photo', 'text', 'manual']
+// item/@line: a budget line key, e.g. "tidal" or "ms365".
+const LINE_RE = /^[a-z0-9][a-z0-9-]*$/
 const CONFIDENCES: ReceiptConfidence[] = ['high', 'medium', 'low']
 
 export interface Problem {
@@ -366,6 +368,17 @@ function parseReceipt(
       errors.push({
         code: 'bad-category',
         message: `Tétel ${n}: ismeretlen kategória "${category}".`,
+      })
+    }
+    // Optional @line (BUG-S01): the budget line key a subscription item is
+    // counted on. Only its shape is checked here; budget lines exist per
+    // month, so whether it names one is decided by budget_receipt_items().
+    // The attribute is stored inside the verbatim raw XML (EXP-01).
+    const lineAttr = item.getAttribute('line')
+    if (lineAttr !== null && !LINE_RE.test(lineAttr)) {
+      errors.push({
+        code: 'bad-line',
+        message: `Tétel ${n}: érvénytelen @line "${lineAttr}" (kisbetűs azonosító, pl. "tidal").`,
       })
     }
     const nameEl = childNamed(item, 'name')

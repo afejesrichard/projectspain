@@ -113,19 +113,29 @@ export function summarizeMonth(data: BudgetMonthData): MonthSummary {
   const groupBudgetCents = { 'Housing and bills': 0, Subscriptions: 0, Everyday: 0, 'One-offs': 0 } as Record<BudgetGroup, number>
   let budgetCents = 0
   let autoPaidCents = 0
+  // The part of autoPaidCents that no receipt stands behind (due_day fill).
+  let autoFallbackCents = 0
   let everydaySpent = 0
   let everydayBudget = 0
   let projected = 0
 
   const lines: LineView[] = data.lines.map((l) => {
     const b = l.budget_cents
-    // A subscription never shows up as a receipt: it counts as spent from
-    // its charge day.
-    const s = l.model === 'auto' ? (dom >= (l.due_day ?? 1) ? b : 0) : (logged.get(l.line)?.cents ?? 0)
+    const own = logged.get(l.line)
+    // INVARIANT [BUG-S01]: a subscription receipt is counted on its auto line only, never also in Other.
+    // Before: auto lines used due_day only and the receipt also landed in Other (double count).
+    // Auto lines without a receipt must still fill on due_day: most subscriptions are never logged.
+    // budget_receipt_items() maps a matched subscription receipt to its auto
+    // line (and so out of 'other'); here an auto line with receipts shows the
+    // actual converted amount, and one without falls back to its budget from
+    // due_day.
+    const autoFallback = l.model === 'auto' && !own
+    const s = l.model === 'auto' ? (own ? own.cents : dom >= (l.due_day ?? 1) ? b : 0) : (own?.cents ?? 0)
 
     budgetCents += b
     groupBudgetCents[l.grp] += b
     if (l.model === 'auto') autoPaidCents += s
+    if (autoFallback) autoFallbackCents += s
     if (l.grp === 'Everyday') {
       everydaySpent += s
       everydayBudget += b
@@ -154,7 +164,10 @@ export function summarizeMonth(data: BudgetMonthData): MonthSummary {
   const budgeted = new Set(data.lines.map((l) => l.line))
   const unbudgeted = data.spent.filter((s) => !budgeted.has(s.line)).map((s) => ({ line: s.line, cents: s.cents }))
 
-  const spentCents = data.logged_cents + autoPaidCents
+  // INVARIANT [BUG-S01]: receipt-backed subscription spend is already in
+  // logged_cents, so only the due_day fallback is added on top. Adding all of
+  // autoPaidCents would count a logged subscription twice.
+  const spentCents = data.logged_cents + autoFallbackCents
   const { low, high } = projectionRange(
     data.daily.map((d) => d.everyday_cents),
     projected,
