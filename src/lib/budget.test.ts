@@ -22,13 +22,14 @@ function month(p: Partial<BudgetMonthData> = {}): BudgetMonthData {
     day_of_month: 10,
     days_left: 20,
     months: ['2030-04-01'],
-    settings: { month: '2030-04-01', net_pay_cents: 300000, huf_eur_rate: 0.0025, note: '' },
+    settings: { month: '2030-04-01', net_pay_cents: 300000, huf_eur_rate: 0.0025, usd_eur_rate: 0.9, note: '' },
     lines: [],
     spent: [],
     logged_cents: 0,
     receipt_count: 0,
     daily: [],
     receipts: [],
+    unconverted: [],
     ...p,
   }
 }

@@ -79,9 +79,9 @@ Rules that must survive any later rewrite. Each is marked in code with a
 
 - **INVARIANT [BUD-01]** — the mapping from a receipt item to a budget line
   exists in one place, the `budget_receipt_items` database function, which
-  also scales item nets to the printed total and converts forints at the
-  month's rate. Nothing else classifies receipt items. Enforced in
-  `supabase/migrations/0012_budget_rate_fallback.sql` (the current
+  also scales item nets to the printed total and converts each currency at
+  its own rate (BUG-FX01). Nothing else classifies receipt items. Enforced in
+  `supabase/migrations/0019_budget_currency_rates.sql` (the current
   definition).
 
 - **INVARIANT [BUG-S01]**: a subscription receipt is counted on its auto
@@ -94,6 +94,15 @@ Rules that must survive any later rewrite. Each is marked in code with a
   top of logged receipts. Enforced in
   `supabase/migrations/0018_budget_subscription_match.sql` and
   `src/lib/budget.ts` (`summarizeMonth`).
+
+- **INVARIANT [BUG-FX01]**: each currency converts at its own rate, never
+  another currency's. EUR is 1, HUF uses `huf_eur_rate`, USD uses
+  `usd_eur_rate`, each from the latest budgeted month on or before the
+  receipt that has it, else the earliest later one. A receipt in a currency
+  with no rate is in no sum: `budget_month()` lists it under `unconverted`
+  and the month view says so. Enforced in
+  `supabase/migrations/0019_budget_currency_rates.sql` and
+  `src/screens/budget/BudgetMonth.tsx` (`Unconverted`).
 
 - **INVARIANT [BUD-02]** — the Budget module never writes to receipts. Its
   functions only read them, and its store writes only `budget_months` and

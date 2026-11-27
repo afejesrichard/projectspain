@@ -85,6 +85,9 @@ function Settings() {
         <Labeled label="Árfolyam (€ / Ft)">
           <RateField rate={settings.huf_eur_rate} onCommit={(r) => updateSettings({ huf_eur_rate: r })} />
         </Labeled>
+        <Labeled label="Árfolyam (€ / $)">
+          <RateField rate={settings.usd_eur_rate} onCommit={(r) => updateSettings({ usd_eur_rate: r })} />
+        </Labeled>
         <Labeled label="Megjegyzés">
           <TextField value={settings.note} onCommit={(note) => updateSettings({ note })} />
         </Labeled>
@@ -194,8 +197,8 @@ function EurField({ cents, onCommit }: { cents: number; onCommit: (cents: number
   )
 }
 
-function RateField({ rate, onCommit }: { rate: number; onCommit: (rate: number) => void }) {
-  const shown = String(rate).replace('.', ',')
+function RateField({ rate, onCommit }: { rate: number | null; onCommit: (rate: number) => void }) {
+  const shown = rate == null ? '' : String(rate).replace('.', ',')
   const f = useDraft(shown)
   return (
     <input

@@ -47,7 +47,7 @@ export const budgetHelp = {
     body: [
       'Minden sor a havi keretét és az eddig elköltött összeget mutatja. A sáv a felhasználás arányában telik, és pirosra vált, ha a sor túllépte a keretét.',
       'Egy sorra koppintva látszik, hogyan állt össze a keret, és mely nyugták számítanak bele.',
-      'Hogy egy nyugta tétele melyik sorba kerül, azt a tétel kategóriája dönti el. A forintos nyugták a hónap árfolyamán számítanak át.',
+      'Hogy egy nyugta tétele melyik sorba kerül, azt a tétel kategóriája dönti el. A forintos és a dolláros nyugták a hónap saját forint-, illetve dollárárfolyamán számítanak át. Amelyik pénznemhez nincs árfolyam, az a nyugta egyik összegbe sem számít bele, és a hónap nézet jelzi.',
     ],
   },
   'month.running': {
@@ -65,7 +65,7 @@ export const budgetHelp = {
     title: 'A hónap alapadatai',
     body: [
       'A nettó fizetéshez mér a hónap színe és a mozgástér.',
-      'Az árfolyam azt adja meg, hány euró egy forint: ezen számítanak át a forintos nyugták ebben a hónapban.',
+      'A forint árfolyama azt adja meg, hány euró egy forint, a dolláré azt, hány euró egy dollár (a kártya árfolyama): ezeken számítanak át a forintos és a dolláros nyugták ebben a hónapban. Új hónap indításakor mindkettő átmásolódik.',
     ],
   },
   'lines.models': {
