@@ -40,6 +40,7 @@ Every file is one `<expenses>` container holding one or more `<receipt>` element
 | `@n` | yes | line number in printed order |
 | `@category` | yes | closed list below |
 | `@sub` | no | free lowercase slug (`dairy`, `canned`, `small-appliance`) |
+| `@line` | no | budget line key a subscription item is counted on (`tidal`, `ms365`); lowercase slug. Use with `sub="subscription"`. Without it the app matches the merchant name to the line key or label. |
 | `@recurrence` | no | `recurring` (default) or `one-off` |
 | `@vat` | no | letter as printed (Spain: A 4%, B 10%, C 21%). When the receipt prints rates but no letters, assign the letter from the printed IVA table and say so in `reconciliation`. |
 | `label` | photo only | text exactly as printed, `@lang` `ca` or `es` |
@@ -100,3 +101,4 @@ Capture the whole slip down to the barcode. On Lidl receipts the date, time, car
 
 - 31 Aug 2026: added `reference/@type` values `booking-id` and `partner-reference` (booking confirmations); added `qty/@unit` for weighed lines; documented VAT letter assignment when a receipt prints rates without letters. All optional, no version bump; `version="1"` files stay valid.
 - 1 Sep 2026: added `reference/@type` value `nrc` (NRC, the AEAT complete payment reference printed on tasa 790 state-fee payment slips). State-fee conventions: `merchant` may have no `nif` (the collecting body is not invoiced), items carry no `@vat` and `totals` has no `by-vat` block (state fees carry no IVA — say so in `reconciliation`), and a cash payment at a bank or ATM keeps the bank and terminal references in `payment/@detail`. All optional, no version bump; `version="1"` files stay valid.
+- 27 Nov 2026: added optional item `@line` (budget line key for `sub="subscription"` items, e.g. `line="tidal"`). No version bump; `version="1"` files stay valid.

@@ -55,18 +55,75 @@ describe('summarizeMonth', () => {
     expect(m.lines.find((l) => l.line === 'travel')!.leftCents).toBe(-16000)
   })
 
-  it('counts a subscription as spent from its due day, never from receipts', () => {
+  it('counts a subscription with no receipt as spent from its due day', () => {
     const subs = [
       line({ line: 'early', grp: 'Subscriptions', budget_cents: 1000, model: 'auto', due_day: 3 }),
       line({ line: 'today', grp: 'Subscriptions', budget_cents: 2000, model: 'auto', due_day: 10 }),
       line({ line: 'later', grp: 'Subscriptions', budget_cents: 4000, model: 'auto', due_day: 25 }),
     ]
-    const m = summarizeMonth(month({ lines: subs, spent: [{ line: 'later', cents: 999, receipts: 1 }], logged_cents: 0 }))
+    const m = summarizeMonth(month({ lines: subs }))
     expect(m.autoPaidCents).toBe(3000)
     expect(m.spentCents).toBe(3000)
     expect(m.lines.find((l) => l.line === 'later')!.spentCents).toBe(0)
     // every subscription counts in full at month end
     expect(m.projectedCents).toBe(7000)
+  })
+
+  // BUG-S01: a logged subscription counts once, on its line, at the actual amount.
+  it('counts a subscription with a receipt at the receipt amount, once', () => {
+    const subs = [
+      line({ line: 'paid', grp: 'Subscriptions', budget_cents: 1000, model: 'auto', due_day: 3 }),
+      // receipt before its due day, at a different (FX) amount
+      line({ line: 'early-receipt', grp: 'Subscriptions', budget_cents: 800, model: 'auto', due_day: 25 }),
+      line({ line: 'later', grp: 'Subscriptions', budget_cents: 4000, model: 'auto', due_day: 25 }),
+      line({ line: 'other', grp: 'One-offs', budget_cents: 5000, model: 'fixed' }),
+    ]
+    const m = summarizeMonth(
+      month({
+        lines: subs,
+        spent: [
+          { line: 'early-receipt', cents: 821, receipts: 1 },
+          { line: 'other', cents: 300, receipts: 1 },
+        ],
+        logged_cents: 1121,
+      }),
+    )
+    const by = (k: string) => m.lines.find((l) => l.line === k)!
+    expect(by('early-receipt').spentCents).toBe(821)
+    expect(by('early-receipt').receiptCount).toBe(1)
+    expect(by('paid').spentCents).toBe(1000)
+    expect(by('later').spentCents).toBe(0)
+    expect(by('other').spentCents).toBe(300)
+    expect(m.autoPaidCents).toBe(1821)
+    // logged 1121 (receipt-backed) + 1000 due_day fallback; the 821 is not added twice
+    expect(m.spentCents).toBe(2121)
+  })
+
+  it('keeps the month total equal to the sum of its lines', () => {
+    const lines = [
+      line({ line: 'rent', grp: 'Housing and bills', budget_cents: 100000, model: 'fixed' }),
+      line({ line: 'a', grp: 'Subscriptions', budget_cents: 1000, model: 'auto', due_day: 1 }),
+      line({ line: 'b', grp: 'Subscriptions', budget_cents: 2000, model: 'auto', due_day: 1 }),
+      line({ line: 'c', grp: 'Subscriptions', budget_cents: 3000, model: 'auto', due_day: 28 }),
+      line({ line: 'other', grp: 'One-offs', budget_cents: 5000, model: 'fixed' }),
+    ]
+    const m = summarizeMonth(
+      month({
+        lines,
+        spent: [
+          { line: 'rent', cents: 100000, receipts: 1 },
+          { line: 'b', cents: 2050, receipts: 1 },
+          { line: 'c', cents: 2990, receipts: 1 },
+          { line: 'other', cents: 700, receipts: 2 },
+        ],
+        logged_cents: 105740,
+      }),
+    )
+    const sumLines = m.lines.reduce((a, l) => a + l.spentCents, 0)
+    expect(m.spentCents).toBe(sumLines)
+    const subs = m.lines.filter((l) => l.grp === 'Subscriptions').reduce((a, l) => a + l.spentCents, 0)
+    expect(subs).toBe(1000 + 2050 + 2990)
+    expect(m.autoPaidCents).toBe(subs)
   })
 
   it('projects paced lines at a blend that leans on the month as it goes on', () => {

@@ -132,6 +132,33 @@ describe('parseExpensesFile — blocking structural failures', () => {
     expect(res.receipts[0].errors.map((e) => e.code)).toContain('bad-category')
   })
 
+  // BUG-S01: optional item/@line names the budget line of a subscription.
+  it('accepts an optional item @line and keeps it in the raw XML', () => {
+    const xml = MINIMAL.replace('category="eating-out"', 'category="other" sub="subscription" line="tidal"')
+    const res = parseExpensesFile(wrap(xml))
+    if (!res.ok) throw new Error('file should parse')
+    const r = res.receipts[0]
+    expect(r.status).toBe('valid')
+    if (r.status !== 'valid') return
+    expect(r.record.rawXml).toContain('line="tidal"')
+  })
+
+  it('flags a malformed item @line', () => {
+    for (const bad of ['TIDAL', 'ms 365', '', '-x']) {
+      const res = parseExpensesFile(wrap(MINIMAL.replace('category="eating-out"', `category="other" line="${bad}"`)))
+      if (!res.ok) throw new Error('file should parse')
+      expect(res.receipts[0].status).toBe('invalid')
+      if (res.receipts[0].status !== 'invalid') return
+      expect(res.receipts[0].errors.map((e) => e.code)).toContain('bad-line')
+    }
+  })
+
+  it('still rejects source="app" (validation unchanged)', () => {
+    const res = parseExpensesFile(wrap(MINIMAL.replace('source="text"', 'source="app"')))
+    if (!res.ok) throw new Error('file should parse')
+    expect(res.receipts[0].status).toBe('invalid')
+  })
+
   it('flags an invalid amount format', () => {
     const res = parseExpensesFile(wrap(MINIMAL.replace('<gross>7.40</gross>', '<gross>7.4</gross>')))
     if (!res.ok) throw new Error('file should parse')
