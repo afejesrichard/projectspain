@@ -55,10 +55,24 @@ export function BudgetMonth() {
       <MonthSwitcher />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
         <Headline s={summary} />
+        <Unconverted items={data.unconverted ?? []} />
         <Figures s={summary} />
         <Lines s={summary} receipts={data.receipts} />
         <Charts s={summary} data={data} />
       </div>
+    </div>
+  )
+}
+
+// INVARIANT [BUG-FX01]: a receipt in a currency with no rate is in no sum;
+// say so rather than leave the month quietly short. A status line, so it
+// stays inline (HELP-01).
+function Unconverted({ items }: { items: BudgetMonthData['unconverted'] }) {
+  if (items.length === 0) return null
+  const currencies = [...new Set(items.map((u) => u.currency))].join(', ')
+  return (
+    <div role="status" style={{ fontSize: 13, color: color.throw }}>
+      {items.length} nyugta nincs átszámítva ({currencies}): add meg az árfolyamot a Sorok nézetben.
     </div>
   )
 }

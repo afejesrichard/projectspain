@@ -12,7 +12,7 @@ import { onSignOut } from './session'
 // (INVARIANT [BUD-02]).
 
 type LinePatch = Partial<Pick<BudgetLine, 'label' | 'budget_cents' | 'basis' | 'model' | 'due_day'>>
-type SettingsPatch = Partial<Pick<BudgetSettings, 'net_pay_cents' | 'huf_eur_rate' | 'note'>>
+type SettingsPatch = Partial<Pick<BudgetSettings, 'net_pay_cents' | 'huf_eur_rate' | 'usd_eur_rate' | 'note'>>
 
 interface BudgetState {
   month: string
@@ -78,8 +78,8 @@ export const useBudget = create<BudgetState>((set, get) => ({
       set((s) => ({ byMonth: { ...s.byMonth, [month]: before } }))
       return false
     }
-    // A new rate changes how forint receipts convert: refetch the figures.
-    if (patch.huf_eur_rate != null) void get().load(month)
+    // A new rate changes how forint or dollar receipts convert: refetch.
+    if (patch.huf_eur_rate != null || patch.usd_eur_rate != null) void get().load(month)
     return true
   },
 

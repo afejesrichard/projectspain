@@ -25,6 +25,8 @@ export interface BudgetSettings {
   month: string
   net_pay_cents: number
   huf_eur_rate: number
+  // euros per dollar; null until set (BUG-FX01)
+  usd_eur_rate: number | null
   note: string
 }
 
@@ -58,6 +60,9 @@ export interface BudgetMonthData {
   receipt_count: number
   daily: BudgetDay[]
   receipts: BudgetReceiptLine[]
+  // INVARIANT [BUG-FX01]: receipts in a currency with no rate. They are in no
+  // sum (never counted at another currency's rate); the month view says so.
+  unconverted: { id: string; day: string; merchant: string; currency: string }[]
 }
 
 export interface LineView extends BudgetLine {
